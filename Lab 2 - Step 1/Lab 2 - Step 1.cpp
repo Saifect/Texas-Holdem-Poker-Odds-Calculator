@@ -57,15 +57,21 @@ typedef struct {
 
 
 //=========PROTOTYPE_FUNCTIONS=========//
-void show_menu(int* choice);
-void get_user_choice(int* choice);
-void handle_menu_choice(int choice);
+void print_mainMenu(int* choice);
+void get_mainMenu_user_choice(int* choice);
+void handle_mainMenu_choice(int choice);
+//
 void init_card(Card* card, Suit suit, Rank rank);
 void init_randomCard(Card* card);
 void init_hand(Hand* hand, Card card1, Card card2);
 void init_player(Player* player, Hand hand);
 void init_board(Board* board);
 void init_game(Game* game, Player player1, Player player2, Board board, const char* phase);
+//
+void handle_calculatorMenu_choice(int choice);
+void print_calculatorMenu();
+//
+
 
 //Prototypes for Useful_function
 double scanf_secure(const char* type);          // Функция для безопасного ввода различных типов данных
@@ -87,9 +93,7 @@ int main(){
 
     while (true) {
         int choice;
-        show_menu(&choice);
-        get_user_choice(&choice);
-        handle_menu_choice(choice);
+        print_mainMenu(&choice);
         press_any_key_to_continue();
         сonsole_clear();
     }
@@ -104,36 +108,38 @@ int main(){
 //======IMPLENTATION_OF_FUNCTIONS======//
 
 //Начальное меню//
-void show_menu(int* choice) {
+void print_mainMenu(int* choice) {
 	printf("\n");
-	printf("    Добро пожаловать в Покерный калькулятор!    \n");
+	printf("               Добро пожаловать!                \n");
     printf("================================================\n");
 	printf("Выберите действие:\n");
-	printf("1. Расчёт вероятностей в покере\n");
+	printf("1. Покерный калькулятор\n");
 	printf("2. Режим практики\n");
     printf("3. Настройки\n");
     printf("4. Прочее\n");
-    printf("-----------------------------------------------\n");
+    printf("------------------------------------------------\n");
 	printf("0. Выход\n");
-    printf("-----------------------------------------------\n");
+    printf("================================================\n");
 	printf("Ваш выбор: ");
+    get_mainMenu_user_choice(choice);
+    handle_mainMenu_choice(*choice);
 }
 
 //Получение выбора пользователя//
-void get_user_choice(int *choice) {
+void get_mainMenu_user_choice(int *choice) {
     *choice = (int)scanf_secure("int"); 
 }
 
-//Обработка выбора пользователя//
-void handle_menu_choice(int choice) {
+//Обработка выбора пользователя в основном меню//
+void handle_mainMenu_choice(int choice) {
     switch (choice) {
     case 0:
         printf("Выход из программы.\n");
         exit(0); // Используем exit для выхода из программы
         
     case 1:
-        printf("Не реализовано\n");
-        // Вызов функции инициализации карты
+        сonsole_clear();
+        print_calculatorMenu();
         break;
     case 2:
         printf("Не реализовано\n");
@@ -144,8 +150,9 @@ void handle_menu_choice(int choice) {
         // Вызов функции отображения карты
         break;
     case 4:
-        printf("Версия программы: 0.1\n");
-        printf("Автор: Saifect@mail.ru\n");
+        printf("Status: In development\n");
+        printf("Version program: 0.2\n");
+        printf("Author: Saifect@mail.ru\n");
         // Вызов функции отображения карты
         break;
 
@@ -155,6 +162,61 @@ void handle_menu_choice(int choice) {
     }
 }
 
+
+//Меню калькулятора вероятностей//
+void print_calculatorMenu() {
+    int choice;
+    bool edit_mode = false;
+    printf("\n");
+    printf("================================================\n");
+    printf("             Текущая информация                 \n");
+    printf("================================================\n");
+    printf("Карты игрока 1: \n");
+    printf("Карты игрока 2: \n");
+    printf("================================================\n");
+    printf("           Функционал калькулятора              \n");
+    printf("================================================\n");
+    printf("1. Добавить карты 1-му игроку\n");
+    printf("2. Добавить карты 2-му игроку\n");
+    printf("3. Рассчитать шансы выигрыша\n");
+    printf("0. Назад\n");
+    if (edit_mode = false) {
+        printf("Ваш выбор: ");
+        choice = (int)scanf_secure("int");
+        handle_calculatorMenu_choice(choice);
+    }
+    else if (edit_mode = true) {
+        printf("Введите карты игрока %d: "); //ДОДЕЛАТЬ РЕДАКТИРОВАНИЯ КАРТ, СОБСТВЕННО ЖЕСТКО ИНИЦИАЛИЗИРОВАТЬ ИХ В MAIN
+    }
+
+    
+    
+}
+
+
+//Обработка выбора пользователя в меню калькулятора//
+void handle_calculatorMenu_choice(int choice) {
+    switch (choice) {
+    case 0:
+        printf("Не реализовано\n");
+        exit(0); 
+
+    case 1:
+        printf("Не реализовано\n");
+        break;
+    case 2:
+        printf("Не реализовано\n");
+       
+        break;
+    case 3:
+        printf("Не реализовано\n");
+        break;
+
+    default:
+        printf("Неверный выбор! Попробуйте снова.\n");
+        break;
+    }
+}
 
 //Инициализация карты//
 void init_card(Card* card, Suit suit, Rank rank){
