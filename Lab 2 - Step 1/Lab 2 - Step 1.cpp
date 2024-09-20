@@ -85,9 +85,6 @@ int main(){
 	// Инициализация генератора случайных чисел
 	srand(time(NULL));
 
-    Player player1;
-    Player player2;
-
     while (true) {
         int choice;
         show_menu(&choice);
