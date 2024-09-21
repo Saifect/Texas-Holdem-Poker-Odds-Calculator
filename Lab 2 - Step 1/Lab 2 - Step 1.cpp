@@ -5,21 +5,25 @@
 #include <locale.h>
 #include <stdlib.h>
 #include <time.h>
-#include <conio.h> 
+#include <conio.h>
+
+
 
 //===============STRUCTS===============//
 
 //Масть карты//
 typedef enum {
+    NONE_SUIT,
 	HEARTS,   // Черви
 	DIAMONDS, // Бубны
 	CLUBS,    // Трефы
-	SPADES    // Пики
+	SPADES,   // Пики
+    
 }Suit;
 
 //Ранк карты//
 typedef enum {
-	TWO = 2, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN,
+    NONE_RANK, TWO = 2, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN,
 	JACK, QUEEN, KING, ACE
 } Rank;
 
@@ -68,14 +72,17 @@ void init_player(Player* player, Hand hand);
 void init_board(Board* board);
 void init_game(Game* game, Player player1, Player player2, Board board, const char* phase);
 //
-void handle_calculatorMenu_choice(int choice);
+void handle_calculatorMenu_choice(int choice, Game* game, bool exit);
 void print_calculatorMenu();
 //
-
-
+const char* get_rank_name(Rank rank);
+const char* get_suit_name(Suit suit);
+void input_player_cards(Player* player);
+//
 //Prototypes for Useful_function
+//
 double scanf_secure(const char* type);          // Функция для безопасного ввода различных типов данных
-void сonsole_clear();                           // Функция для очистки консоли
+void clearConsole();                            // Функция для очистки консоли
 void buffer_clear();                            // Функция для очистки буфера ввода
 void line_remove(char* str);                    // Функция для удаления символа новой строки из строки
 void string_get_secure(char* buffer, int size); // Функция для безопасного получения строки с защитой от переполнения буфера
@@ -84,24 +91,21 @@ void press_any_key_to_continue_clearConsole();
 
 //============MAIN_FUNCTION============//
 int main(){
-	
-	SetConsoleCP(1251); SetConsoleOutputCP(1251);
-	setlocale(LC_ALL, "Rus");
-
-	// Инициализация генератора случайных чисел
-	srand(time(NULL));
-
+    system("chcp 65001");
+    clearConsole();
+    /// Установка кодировок консоли на UTF-8
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    setlocale(LC_ALL, "Rus");
+    setlocale(LC_ALL, "Rus");
+    ///Основная логика///
     while (true) {
         int choice;
         print_mainMenu(&choice);
         press_any_key_to_continue();
-        сonsole_clear();
+        clearConsole();
     }
-   
-	 
-
-
-
+  
 	return 0;
 }
 
@@ -110,6 +114,7 @@ int main(){
 //Начальное меню//
 void print_mainMenu(int* choice) {
 	printf("\n");
+    printf("================================================\n");
 	printf("               Добро пожаловать!                \n");
     printf("================================================\n");
 	printf("Выберите действие:\n");
@@ -117,7 +122,6 @@ void print_mainMenu(int* choice) {
 	printf("2. Режим практики\n");
     printf("3. Настройки\n");
     printf("4. Прочее\n");
-    printf("------------------------------------------------\n");
 	printf("0. Выход\n");
     printf("================================================\n");
 	printf("Ваш выбор: ");
@@ -138,7 +142,7 @@ void handle_mainMenu_choice(int choice) {
         exit(0); // Используем exit для выхода из программы
         
     case 1:
-        сonsole_clear();
+        clearConsole();
         print_calculatorMenu();
         break;
     case 2:
@@ -151,7 +155,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: In development\n");
-        printf("Version program: 0.2\n");
+        printf("Version program: 0.3");
         printf("Author: Saifect@mail.ru\n");
         // Вызов функции отображения карты
         break;
@@ -165,51 +169,91 @@ void handle_mainMenu_choice(int choice) {
 
 //Меню калькулятора вероятностей//
 void print_calculatorMenu() {
-    int choice;
-    bool edit_mode = false;
-    printf("\n");
-    printf("================================================\n");
-    printf("             Текущая информация                 \n");
-    printf("================================================\n");
-    printf("Карты игрока 1: \n");
-    printf("Карты игрока 2: \n");
-    printf("================================================\n");
-    printf("           Функционал калькулятора              \n");
-    printf("================================================\n");
-    printf("1. Добавить карты 1-му игроку\n");
-    printf("2. Добавить карты 2-му игроку\n");
-    printf("3. Рассчитать шансы выигрыша\n");
-    printf("0. Назад\n");
-    if (edit_mode = false) {
-        printf("Ваш выбор: ");
-        choice = (int)scanf_secure("int");
-        handle_calculatorMenu_choice(choice);
-    }
-    else if (edit_mode = true) {
-        printf("Введите карты игрока %d: "); //ДОДЕЛАТЬ РЕДАКТИРОВАНИЯ КАРТ, СОБСТВЕННО ЖЕСТКО ИНИЦИАЛИЗИРОВАТЬ ИХ В MAIN
-    }
+    /// Инициализация ///
+    Card card1 = { NONE_SUIT, NONE_RANK }; // Пример корректной инициализации карты: ранг "Двойка" и масть "Черви"
+    Card card2 = { NONE_SUIT, NONE_RANK }; // Пример корректной инициализации карты: ранг "Тройка" и масть "Пики"
+    Hand hand1 = { card1, card2 }; // Инициализация рук
+    Hand hand2 = { card1, card2 }; // Для второго игрока тоже можно задать
+    Player player1 = { hand1 }; // Инициализация игроков
+    Player player2 = { hand2 };
+    Board board = { NONE_SUIT }; // Инициализация доски
+    Game game = { player1, player2, board }; // Инициализация структуры Game
 
-    
-    
+    int choice = -1;
+    bool edit_mode = false;
+    int edit_current_player = 0;
+    bool exit = false;
+    bool tracking_changes;
+
+    while (exit == false)
+    {
+        printf("\n");
+        printf("================================================\n");
+        printf("             Текущая информация                 \n");
+        printf("================================================\n");
+
+        // Проверь, были ли карты введены для 1-го игрока
+        if (game.player1.hand.card1.rank != NONE_RANK && game.player1.hand.card2.rank != NONE_RANK) {
+            printf("Карты игрока 1: %s %s и %s %s\n", get_rank_name(game.player1.hand.card1.rank),
+                get_suit_name(game.player1.hand.card1.suit),
+                get_rank_name(game.player1.hand.card2.rank),
+                get_suit_name(game.player1.hand.card2.suit));
+        }
+        else {
+            printf("Карты игрока 1: не заданы\n");
+        }
+
+        // Проверь, были ли карты введены для 2-го игрока
+        if (game.player2.hand.card1.rank != NONE_RANK && game.player2.hand.card2.rank != NONE_RANK) {
+            printf("Карты игрока 2: %s %s и %s %s\n", get_rank_name(game.player2.hand.card1.rank),
+                get_suit_name(game.player2.hand.card1.suit),
+                get_rank_name(game.player2.hand.card2.rank),
+                get_suit_name(game.player2.hand.card2.suit));
+        }
+        else {
+            printf("Карты игрока 2: не заданы\n");
+        }
+
+        printf("================================================\n");
+        printf("           Функционал калькулятора              \n");
+        printf("================================================\n");
+        printf("1. Добавить карты 1-му игроку\n");
+        printf("2. Добавить карты 2-му игроку\n");
+        printf("3. Рассчитать шансы выигрыша\n");
+        printf("0. Назад\n");
+        printf("================================================\n");
+        printf("Ваш выбор: ");
+
+        choice = (int)scanf_secure("int");
+        handle_calculatorMenu_choice(choice, &game, exit);
+    }
 }
 
 
+
 //Обработка выбора пользователя в меню калькулятора//
-void handle_calculatorMenu_choice(int choice) {
+void handle_calculatorMenu_choice(int choice, Game* game, bool exit) {
     switch (choice) {
     case 0:
-        printf("Не реализовано\n");
-        exit(0); 
+        printf("Возврат в главное меню...\n");
+        exit = true;
+        break;
 
     case 1:
-        printf("Не реализовано\n");
+        printf("------------------------------------------------\n");
+        printf("        Добавление карт 1-му игроку             \n");
+        printf("------------------------------------------------\n");
+        input_player_cards(&game->player1);
         break;
+
     case 2:
-        printf("Не реализовано\n");
-       
+        printf("Добавление карт 2-му игроку\n");
+        input_player_cards(&game->player2);
         break;
+
     case 3:
-        printf("Не реализовано\n");
+        printf("Рассчитать шансы выигрыша...\n");
+        // Вызов функции расчета эквити (вероятности выигрыша)
         break;
 
     default:
@@ -217,6 +261,7 @@ void handle_calculatorMenu_choice(int choice) {
         break;
     }
 }
+
 
 //Инициализация карты//
 void init_card(Card* card, Suit suit, Rank rank){
@@ -258,6 +303,87 @@ void init_game(Game* game, Player player1, Player player2, Board board, const ch
 	game->board = board;
 	snprintf(game->phase, sizeof(game->phase), "%s", phase);  // Установим фазу игры
 }
+
+//Вывод названий рангов//
+const char* get_rank_name(Rank rank) {
+    switch (rank){
+    case TWO: return "Двойка";
+    case THREE: return "Тройка";
+    case FOUR: return "Четверка";
+    case FIVE: return "Пятерка";
+    case SIX: return "Шестерка";
+    case SEVEN: return "Семерка";
+    case EIGHT: return "Восьмерка";
+    case NINE: return "Девятка";
+    case TEN: return "Десятка";
+    case JACK: return "Валет";
+    case QUEEN: return "Дама";
+    case KING: return "Король";
+    case ACE: return "Туз";
+    default: return "Неизвестно";
+    }
+}
+
+//Вывод названий мастей//
+// Функция для получения имени масти карты
+const char* get_suit_name(Suit suit) {
+    switch (suit) {
+    case HEARTS: return "Черви \u2665";
+    case DIAMONDS: return "Бубны";
+    case CLUBS: return "Трефы";
+    case SPADES: return "Пики";
+    default: return "Неизвестно";
+    }
+}
+
+//Ввод карт игрока//
+void input_player_cards(Player* player) {
+    int rank_choice, suit_choice;
+    bool identical_cards;
+    // Ввод первой карты
+    do {
+        printf("Введите ранг первой карты (2-14): ");
+        rank_choice = (int)scanf_secure("int");
+        if (rank_choice < 2 || rank_choice > 14) {
+            printf("Неверный ранг! Попробуйте снова.\n");
+        }
+    } while (rank_choice < 2 || rank_choice > 14);
+    player->hand.card1.rank = (Rank)rank_choice;
+
+    do {
+        printf("Введите масть первой карты (1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики): ");
+        suit_choice = (int)scanf_secure("int");
+        if (suit_choice < 1 || suit_choice > 4){
+            printf("Вы ввели число вне диапазона, попробуйте снова!\n");
+        }
+    } while (suit_choice < 1 || suit_choice > 4);
+    player->hand.card1.suit = (Suit)suit_choice;
+
+    // Ввод второй карты
+    do {
+        printf("Введите ранг второй карты (2-14): ");
+        rank_choice = (int)scanf_secure("int");
+        if (rank_choice < 2 || rank_choice > 14) {
+            printf("Неверный ранг! Попробуйте снова.\n");
+        }
+
+    } while (rank_choice < 2 || rank_choice > 14);
+    player->hand.card2.rank = (Rank)rank_choice;
+
+    do {
+        printf("Введите масть первой карты (1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики): ");
+        suit_choice = (int)scanf_secure("int");
+        if (suit_choice < 1 || suit_choice > 4) {
+            printf("Вы ввели число вне диапазона, попробуйте снова!\n");
+        }
+        if (player->hand.card1.suit == suit_choice) {
+            identical_cards = true;
+        }
+
+    } while (suit_choice < 1 || suit_choice > 4);
+    player->hand.card2.suit = (Suit)suit_choice;
+}
+
 
 //==========Useful_functions==========//
 // Функция для безопасного ввода различных типов данных
@@ -323,7 +449,7 @@ double scanf_secure(const char* type) {
 }
 
 // Очистка консоли
-void сonsole_clear() {
+void clearConsole() {
     system("cls");
 }
 
@@ -359,3 +485,13 @@ void press_any_key_to_continue_clearConsole() {
     _getch(); // Ожидание нажатия клавиши
     system("cls"); // Очистка консоли (Windows)
 }
+
+
+//////////////////////////////////////////////
+//////////////////////////////////////////////
+//ФУНКЦИИ ДЛЯ АЛГОРИТМА РАСЧЕТА ВЕРОЯТНОСТЕЙ//
+//////////////////////////////////////////////
+//////////////////////////////////////////////
+
+
+
