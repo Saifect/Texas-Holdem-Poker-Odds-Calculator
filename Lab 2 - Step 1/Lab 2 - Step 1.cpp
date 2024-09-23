@@ -95,7 +95,7 @@ void init_player(Player* player, Hand hand);
 void init_board(Board* board);
 void init_game(Game* game, Player player1, Player player2, Board board, const char* phase);
 //
-void handle_calculatorMenu_choice(int choice, Game* game, bool exit);
+void handle_calculatorMenu_choice(int choice, Game* game, bool* exit);
 void print_calculatorMenu();
 //
 const char* get_rank_name(Rank rank);
@@ -129,8 +129,9 @@ int compare_hands(Hand hand1, Hand hand2, Game* game);
 
 void print_preflop_hand(PokerHand hand);
 
-void display_board_cards(Board board);
+void display_board_cards(const Board* board);
 
+void fill_board_with_cards(Game* game, const char* phase);
 //============MAIN_FUNCTION============//
 int main(){
 
@@ -198,7 +199,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: In development\n");
-        printf("Version program: 0.5");
+        printf("Version program: 0.6");
         printf("Author: Saifect@mail.ru\n");
         // Вызов функции отображения карты
         break;
@@ -212,6 +213,8 @@ void handle_mainMenu_choice(int choice) {
 
 //Меню калькулятора вероятностей//
 void print_calculatorMenu() {
+    srand(time(NULL));
+
     /// Инициализация ///
     Card card1 = { NONE_SUIT, NONE_RANK }; // Пример корректной инициализации карты: ранг "Двойка" и масть "Черви"
     Card card2 = { NONE_SUIT, NONE_RANK }; // Пример корректной инициализации карты: ранг "Тройка" и масть "Пики"
@@ -221,6 +224,8 @@ void print_calculatorMenu() {
     Player player2 = { hand2 };
     Board board = { NONE_SUIT }; // Инициализация доски
     Game game = { player1, player2, board }; // Инициализация структуры Game
+    strcpy(game.phase, "preflop");
+
 
     int choice = -1;
     bool edit_mode = false;
@@ -256,15 +261,17 @@ void print_calculatorMenu() {
         else {
             printf("Карты игрока 2: не заданы\n");
         }
-        //Отоброжение инфорамации о столе
-        printf("Карты на столе: \n");
+        printf("-----------------------------------------------\n");
         if (strcmp(game.phase, "preflop") == 0) {
-            printf("не заданы");
-        }
-        else {
-            display_board_cards(board);
+            printf("Карты на столе: отсутствуют (префлоп)\n");
         }
 
+
+        else {
+            display_board_cards(&game.board); // Передача по значению
+
+        }
+        printf("Текущяя стадия игры (улица): %s\n", game.phase);
         printf("================================================\n");
         printf("           Функционал калькулятора              \n");
         printf("================================================\n");
@@ -272,28 +279,29 @@ void print_calculatorMenu() {
         printf("2. Добавить карты 2-му игроку\n");
         printf("3. Добавить случайные карты 1-му игроку\n");
         printf("4. Добавить случайные карты 2-му игроку\n");
-        printf("5. Рассчитать шансы выигрыша\n");
-        printf("6. Проанализировать комбинацию игрока 1\n");
-        printf("7. Проанализировать комбинацию игрока 2\n");
+        printf("5. Раздать улицу на стол\n");
+        printf("6. Рассчитать шансы выигрыша\n");
+        printf("7. Проанализировать комбинацию игрока 1\n");
+        printf("8. Проанализировать комбинацию игрока 2\n");
         printf("0. Назад\n");
         printf("================================================\n");
         printf("Ваш выбор: ");
 
         choice = (int)scanf_secure("int");
-        handle_calculatorMenu_choice(choice, &game, exit);
+        handle_calculatorMenu_choice(choice, &game, &exit);
     }
 }
 
 
 
 //Обработка выбора пользователя в меню калькулятора//
-void handle_calculatorMenu_choice(int choice, Game* game, bool exit) {
+void handle_calculatorMenu_choice(int choice, Game* game, bool* exit) {
     PokerHand result_player1;
     PokerHand result_player2;
     switch (choice) {
     case 0:
         printf("Возврат в главное меню...\n");
-        exit = true;
+        *exit = true;
         clearConsole();
         break;
 
@@ -319,17 +327,34 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool exit) {
         clearConsole();
         break;
     case 5:
+
+        if (strcmp(game->phase, "preflop") == 0) {
+            strcpy(game->phase, "flop");
+            fill_board_with_cards(game, game->phase);
+        }
+        else if (strcmp(game->phase, "flop") == 0) {
+            strcpy(game->phase, "turn");
+            fill_board_with_cards(game, game->phase);
+        }
+        else if (strcmp(game->phase, "turn") == 0) {
+            strcpy(game->phase, "river");
+            fill_board_with_cards(game, game->phase);
+        }
+        clearConsole();
+        break;
+
+    case 6:
         printf("Рассчитать шансы выигрыша...\n");
         // Вызов функции расчета эквити (вероятности выигрыша)
         clearConsole();
         break;
-    case 6:
+    case 7:
         result_player1 = determine_hand(game->player1.hand, game->board);
         print_preflop_hand(result_player1);
         press_any_key_to_continue();
         clearConsole();
         break;
-    case 7:
+    case 8:
         result_player2 = determine_hand(game->player2.hand, game->board);
         print_preflop_hand(result_player2);
         press_any_key_to_continue();
@@ -422,13 +447,13 @@ void print_card(Card card) {
     printf("%s %s\n", get_rank_name(card.rank), get_suit_name(card.suit));
 }
 
-// Функция для отображения текущих карт на столе//
-void display_board_cards(Board board) {
+void display_board_cards(const Board* board) {
     printf("Карты на столе:\n");
-    for (int i = 0; i < board.num_cards; i++) {
-        print_card(board.cards[i]);
+    for (int i = 0; i < board->num_cards; i++) {
+        print_card(board->cards[i]);
     }
 }
+
 
 void print_preflop_hand(PokerHand hand) {
     if (hand.hand_rank == ONE_PAIR) {
@@ -696,47 +721,65 @@ int compare_hands(Hand hand1, Hand hand2, Game *game) {
 
 PokerHand determine_hand(Hand hand, Board board) {
     PokerHand result;
-    int card_count[15] = { 0 };  // Массив для подсчета карт по рангу (индексы 2-14, где 14 - это туз)
+    result.hand_rank = HIGH_CARD;  // По умолчанию - старшая карта
+    result.high_card = NONE_RANK;
 
-    // Включаем карты с руки в подсчёт
-    card_count[hand.card1.rank]++;
-    card_count[hand.card2.rank]++;
+    int card_count[15] = { 0 };  // Для подсчета карт по рангу (индексы 2-14, где 14 - это туз)
+    int suit_count[4] = { 0 };   // Для подсчета карт по мастям (индексы для мастей: 0 - HEARTS, 1 - DIAMONDS и т.д.)
 
-    // Включаем карты на доске в подсчёт
-    for (int i = 0; i < board.num_cards; i++) {
-        card_count[board.cards[i].rank]++;
-    }
-
-    // Теперь определяем комбинацию
-    int pairs = 0, three_of_a_kind = 0, four_of_a_kind = 0;
-    int straight_high = 0, flash_high = 0;
-
-    // Подсчет карт по мастям
-    int suit_count[4] = { 0 }; // Для каждой масти: 0 - HEARTS, 1 - DIAMONDS, 2 - CLUBS, 3 - SPADES
-    Card all_cards[7]; // Все карты с руки и с доски (максимум 7)
+    Card all_cards[7];  // Все карты (максимум 7 карт: 2 на руках + 5 на столе)
     all_cards[0] = hand.card1;
     all_cards[1] = hand.card2;
     for (int i = 0; i < board.num_cards; i++) {
         all_cards[2 + i] = board.cards[i];
     }
 
+    // Подсчет количества карт каждого ранга и масти
     for (int i = 0; i < 2 + board.num_cards; i++) {
+        card_count[all_cards[i].rank]++;
         suit_count[all_cards[i].suit]++;
     }
 
-    // Проверка на флэш
-    int flush_suit = -1;  // Масть флэша, если будет найден
-    for (int i = 0; i < 4; i++) {
-        if (suit_count[i] >= 5) {
-            flush_suit = i;  // Нашли флэш
+    // Переменные для анализа комбинаций
+    int pairs = 0, three_of_a_kind = 0, four_of_a_kind = 0;
+    int highest_pair = 0, second_highest_pair = 0;
+    int highest_rank = 0, kicker[2] = { 0 };
+
+    // Определение пар, троек и каре
+    for (int rank = ACE; rank >= TWO; rank--) {
+        if (card_count[rank] == 4) {
+            four_of_a_kind = rank;
+        }
+        else if (card_count[rank] == 3) {
+            three_of_a_kind = rank;
+        }
+        else if (card_count[rank] == 2) {
+            if (highest_pair == 0) {
+                highest_pair = rank;
+            }
+            else {
+                second_highest_pair = highest_pair;
+                highest_pair = rank;
+            }
+        }
+        else if (card_count[rank] == 1 && rank > highest_rank) {
+            highest_rank = rank;
         }
     }
 
-    // Если нашли флэш, определим старшую карту флэша
+    // Проверка на флэш
+    int flush_suit = -1;
+    for (int i = 0; i < 4; i++) {
+        if (suit_count[i] >= 5) {
+            flush_suit = i;
+            break;
+        }
+    }
+
+    // Если есть флэш, выбираем старшие карты той же масти
     if (flush_suit != -1) {
         result.hand_rank = FLUSH;
-        int flush_cards[5]; // Массив для хранения рангов карт флэша
-
+        int flush_cards[5];
         int count = 0;
         for (int i = 0; i < 2 + board.num_cards; i++) {
             if (all_cards[i].suit == flush_suit) {
@@ -744,114 +787,88 @@ PokerHand determine_hand(Hand hand, Board board) {
                 if (count == 5) break;
             }
         }
-
-        // Найдём старшую карту флэша
-        int max_rank = flush_cards[0];
-        for (int i = 1; i < 5; i++) {
-            if (flush_cards[i] > max_rank) {
-                max_rank = flush_cards[i];
-            }
-        }
-        result.high_card = (Rank)max_rank;
-
-        // Теперь проверим на стрит-флэш
-        // Для этого отсортируем карты флэша по рангу
-        for (int i = 0; i < count - 1; i++) {
-            for (int j = i + 1; j < count; j++) {
-                if (flush_cards[i] < flush_cards[j]) {
-                    int temp = flush_cards[i];
-                    flush_cards[i] = flush_cards[j];
-                    flush_cards[j] = temp;
-                }
-            }
-        }
+        result.high_card = (Rank)flush_cards[0];  // Явное приведение типа
 
         // Проверка на стрит-флэш
-        int consecutive = 1;
         for (int i = 0; i < count - 1; i++) {
-            if (flush_cards[i] == flush_cards[i + 1] + 1) {
-                consecutive++;
-                if (consecutive == 5) {
-                    result.hand_rank = STRAIGHT_FLUSH;
-                    result.high_card = (Rank)flush_cards[i - 3]; // Старшая карта стрита
-                    return result;
-                }
+            if (flush_cards[i] - 1 != flush_cards[i + 1]) {
+                break;
             }
-            else {
-                consecutive = 1;
+            if (i == count - 2) {
+                result.hand_rank = STRAIGHT_FLUSH;
+                result.high_card = (Rank)flush_cards[0];  // Явное приведение типа
+                return result;
             }
-        }
-
-        // Проверка на роял-флэш (стрит-флэш от десятки до туза)
-        if (flush_cards[0] == ACE && flush_cards[1] == KING && flush_cards[2] == QUEEN &&
-            flush_cards[3] == JACK && flush_cards[4] == TEN) {
-            result.hand_rank = ROYAL_FLUSH;
-            result.high_card = ACE;
-            return result;
         }
     }
 
-
     // Проверка на стрит
-    for (int i = ACE; i >= TWO; i--) {
-        if (card_count[i] > 0) {
-            straight_high++;
-            if (straight_high == 5) {
+    int consecutive = 0;
+    for (int rank = ACE; rank >= TWO; rank--) {
+        if (card_count[rank] > 0) {
+            consecutive++;
+            if (consecutive == 5) {
                 result.hand_rank = STRAIGHT;
-                result.high_card = (Rank)i;
-                return result;  // Возвращаем результат, если нашли стрит
+                result.high_card = (Rank)rank;  // Явное приведение типа
+                return result;  // Возвращаем результат, если найден стрит
             }
         }
         else {
-            straight_high = 0;
+            consecutive = 0;
         }
     }
 
-    // Проверка на пары, тройки и каре
-    for (int i = ACE; i >= TWO; i--) {
-        if (card_count[i] == 4) {
-            four_of_a_kind = i;
-        }
-        else if (card_count[i] == 3) {
-            three_of_a_kind = i;
-        }
-        else if (card_count[i] == 2) {
-            pairs++;
-        }
-    }
-
-    // Определяем комбинации на основе подсчётов
+    // Проверка на каре (четыре одинаковые карты)
     if (four_of_a_kind > 0) {
         result.hand_rank = FOUR_OF_A_KIND;
-        result.high_card = (Rank)four_of_a_kind;
+        result.high_card = (Rank)four_of_a_kind;  // Явное приведение типа
+        return result;
     }
-    else if (three_of_a_kind > 0 && pairs > 0) {
+
+    // Проверка на фулл-хаус (тройка и пара)
+    if (three_of_a_kind > 0 && highest_pair > 0) {
         result.hand_rank = FULL_HOUSE;
-        result.high_card = (Rank)three_of_a_kind;
-        result.kicker[0] = (Rank)pairs;
+        result.high_card = (Rank)three_of_a_kind;  // Явное приведение типа
+        result.kicker[0] = (Rank)highest_pair;  // Явное приведение типа
+        return result;
     }
-    else if (three_of_a_kind > 0) {
+
+    // Проверка на тройку
+    if (three_of_a_kind > 0) {
         result.hand_rank = THREE_OF_A_KIND;
-        result.high_card = (Rank)three_of_a_kind;
+        result.high_card = (Rank)three_of_a_kind;  // Явное приведение типа
+        return result;
     }
-    else if (pairs == 2) {
+
+    // Проверка на две пары
+    if (highest_pair > 0 && second_highest_pair > 0) {
         result.hand_rank = TWO_PAIR;
-        result.high_card = (Rank)pairs;
+        result.high_card = (Rank)highest_pair;  // Явное приведение типа
+        result.kicker[0] = (Rank)second_highest_pair;  // Явное приведение типа
+        return result;
     }
-    else if (pairs == 1) {
+
+    // Проверка на одну пару
+    if (highest_pair > 0) {
         result.hand_rank = ONE_PAIR;
-        result.high_card = (Rank)pairs;
+        result.high_card = (Rank)highest_pair;  // Явное приведение типа
+        result.kicker[0] = (Rank)highest_rank;  // Явное приведение типа
+        return result;
     }
-    else {
-        result.hand_rank = HIGH_CARD;
-        result.high_card = (hand.card1.rank > hand.card2.rank) ? hand.card1.rank : hand.card2.rank;
-    }
+
+    // Если ничего не найдено, просто старшая карта
+    result.hand_rank = HIGH_CARD;
+    result.high_card = (Rank)((hand.card1.rank > hand.card2.rank) ? hand.card1.rank : hand.card2.rank);  // Явное приведение типа
+    kicker[0] = (hand.card1.rank > hand.card2.rank) ? hand.card2.rank : hand.card1.rank;
+    result.kicker[0] = (Rank)kicker[0];  // Явное приведение типа
 
     return result;
 }
 
+
+
 // Функция для заполнения доски картами в зависимости от стадии игры
-void fill_board_with_cards(Board* board, Player* player1, Player* player2, const char* phase) {
+void fill_board_with_cards(Game *game, const char* phase) {
     Card deck[52];
     create_deck(deck); // Создаем полную колоду
     shuffle_deck(deck, 52); // Перемешиваем колоду
@@ -860,12 +877,12 @@ void fill_board_with_cards(Board* board, Player* player1, Player* player2, const
     bool used[52] = { false };
 
     // Помечаем карты первого игрока
-    used[player1->hand.card1.rank * 4 + player1->hand.card1.suit] = true;
-    used[player1->hand.card2.rank * 4 + player1->hand.card2.suit] = true;
+    used[game->player1.hand.card1.rank * 4 + game->player1.hand.card1.suit] = true;
+    used[game->player1.hand.card2.rank * 4 + game->player1.hand.card2.suit] = true;
 
-    // Помечаем карты второго игрока
-    used[player2->hand.card1.rank * 4 + player2->hand.card1.suit] = true;
-    used[player2->hand.card2.rank * 4 + player2->hand.card2.suit] = true;
+    // Помечаем карты второго игрока как использованные
+    used[game->player2.hand.card1.rank * 4 + game->player2.hand.card1.suit] = true;
+    used[game->player2.hand.card2.rank * 4 + game->player2.hand.card2.suit] = true;
 
     // Определяем сколько карт должно быть на доске в зависимости от стадии игры
     int cards_needed = 0;
@@ -880,10 +897,10 @@ void fill_board_with_cards(Board* board, Player* player1, Player* player2, const
     }
 
     // Заполняем доску недостающими картами
-    while (board->num_cards < cards_needed) {
+    while (game->board.num_cards < cards_needed) {
         for (int j = 0; j < 52; j++) {
             if (!used[j]) {
-                board->cards[board->num_cards++] = deck[j];
+                game->board.cards[game->board.num_cards++] = deck[j];
                 used[j] = true; // Помечаем карту как использованную
                 break;
             }
