@@ -84,56 +84,55 @@ typedef struct {
 
 
 //=========PROTOTYPE_FUNCTIONS=========//
+
+// Main Menu Functions
 void print_mainMenu(int* choice);
 void get_mainMenu_user_choice(int* choice);
 void handle_mainMenu_choice(int choice);
-//
+
+// Initialization Functions
 void init_card(Card* card, Suit suit, Rank rank);
 void init_randomCard(Card* card);
 void init_hand(Hand* hand, Card card1, Card card2);
 void init_player(Player* player, Hand hand);
 void init_board(Board* board);
 void init_game(Game* game, Player player1, Player player2, Board board, const char* phase);
-//
+
+// Menu Handling Functions
 void handle_calculatorMenu_choice(int choice, Game* game, bool* exit);
 void print_calculatorMenu();
 void print_editPlayerMenu(Game* game, bool used_cards[15][5]);
-//
+
+// Utility Functions
 const char* get_rank_name(Rank rank);
 const char* get_suit_name(Suit suit);
 void input_player_cards(Player* player, bool used_cards[15][5]);
 
-//Prototypes for Useful_function//
-
+// Useful Functions
 double scanf_secure(const char* type);          // Функция для безопасного ввода различных типов данных
 void clearConsole();                            // Функция для очистки консоли
 void buffer_clear();                            // Функция для очистки буфера ввода
 void line_remove(char* str);                    // Функция для удаления символа новой строки из строки
 void string_get_secure(char* buffer, int size); // Функция для безопасного получения строки с защитой от переполнения буфера
-//Какая-то функция 
-void press_any_key_to_continue();
+void press_any_key_to_continue();               // Тут интуитивно понятно
 
-//Еще функции
+// Board Functions
+void clear_board(Game* game, bool used_cards[15][5]);
 void print_editBoardMenu(Game* game, bool used_cards[15][5]);
-
 void input_board_cards(Game* game, bool used_cards[15][5], int start_index, int num_cards);
 
+// Deck Functions
 void shuffle_deck(Card* deck, int size);
-
 void create_deck(Card* deck);
-
 void deal_random_cards(Player* player1, Player* player2, short current_player);
 
-//И еще больше функций
+// Game Logic Functions
 PokerHand determine_hand(Hand hand, Board board);
-
 int compare_hands(Hand hand1, Hand hand2, Game* game);
-
-void print_preflop_hand(PokerHand hand);
-
+void print_hand(PokerHand hand);
 void display_board_cards(const Board* board);
-
 void fill_board_with_random_cards(Game* game, const char* phase);
+void randomize_board_cards(Game* game, bool used_cards[15][5], int start_index, int num_cards);
 
 //============MAIN_FUNCTION============//
 int main(){
@@ -210,7 +209,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: In development\n");
-        printf("Version program: 0.7\n");
+        printf("Version program: 0.8\n");
         printf("Author: Saifect@mail.ru\n");
 
         break;
@@ -276,12 +275,11 @@ void print_calculatorMenu() {
         if (strcmp(game.phase, "preflop") == 0) {
             printf("Карты на столе: отсутствуют\n");
         }
-
-
         else {
             display_board_cards(&game.board);
 
         }
+
         printf("Текущяя стадия игры (улица): %s\n", game.phase);
         printf("================================================\n");
         printf("           Функционал калькулятора              \n");
@@ -353,8 +351,11 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit) {
 
     case 4:
         if (game->player1.hand.card1.rank != NONE_RANK && game->player1.hand.card2.rank != NONE_RANK) {
+            printf("--------------\n");
+            printf(" Первый игрок \n");
+            printf("--------------\n");
             result_player1 = determine_hand(game->player1.hand, game->board);
-            print_preflop_hand(result_player1);
+            print_hand(result_player1);
            
         }
         else {
@@ -362,8 +363,11 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit) {
         }
 
         if (game->player2.hand.card1.rank != NONE_RANK && game->player2.hand.card2.rank != NONE_RANK) {
+            printf("--------------\n");
+            printf(" Второй игрок \n");
+            printf("--------------\n");
             result_player2 = determine_hand(game->player2.hand, game->board);
-            print_preflop_hand(result_player2);
+            print_hand(result_player2);
           
         }
         else {
@@ -387,6 +391,42 @@ void print_editPlayerMenu(Game* game, bool used_cards[15][5]) {
     bool back = false;
 
     while (!back) {
+        printf("\n");
+        printf("================================================\n");
+        printf("             Текущая информация                 \n");
+        printf("================================================\n");
+        //были ли карты введены для 1-го игрока?
+        if (game->player1.hand.card1.rank != NONE_RANK && game->player1.hand.card2.rank != NONE_RANK) {
+            printf("Карты игрока 1: %s %s и %s %s\n", get_rank_name(game->player1.hand.card1.rank),
+                get_suit_name(game->player1.hand.card1.suit),
+                get_rank_name(game->player1.hand.card2.rank),
+                get_suit_name(game->player1.hand.card2.suit));
+        }
+        else {
+            printf("Карты игрока 1: не заданы\n");
+        }
+
+        //были ли карты введены для 2-го игрока?
+        if (game->player2.hand.card1.rank != NONE_RANK && game->player2.hand.card2.rank != NONE_RANK) {
+            printf("Карты игрока 2: %s %s и %s %s\n", get_rank_name(game->player2.hand.card1.rank),
+                get_suit_name(game->player2.hand.card1.suit),
+                get_rank_name(game->player2.hand.card2.rank),
+                get_suit_name(game->player2.hand.card2.suit));
+        }
+        else {
+            printf("Карты игрока 2: не заданы\n");
+        }
+        
+        if (strcmp(game->phase, "preflop") == 0) {
+            printf("Карты на столе: отсутствуют\n");
+        }
+        else {
+            display_board_cards(&game->board);
+
+        }
+
+        printf("Текущяя стадия игры (улица): %s\n", game->phase);
+
         printf("================================================\n");
         printf("            Редактор карт игроков               \n");
         printf("================================================\n");
@@ -430,6 +470,153 @@ void print_editPlayerMenu(Game* game, bool used_cards[15][5]) {
         }
     }
 }
+
+void print_editBoardMenu(Game* game, bool used_cards[15][5]) {
+    int choice;
+    bool exit_editor = false;
+
+    while (!exit_editor) {
+        printf("\n");
+        printf("================================================\n");
+        printf("             Текущая информация                 \n");
+        printf("================================================\n");
+        // были ли карты введены для 1-го игрока?
+        if (game->player1.hand.card1.rank != NONE_RANK && game->player1.hand.card2.rank != NONE_RANK) {
+            printf("Карты игрока 1: %s %s и %s %s\n",
+                get_rank_name(game->player1.hand.card1.rank),
+                get_suit_name(game->player1.hand.card1.suit),
+                get_rank_name(game->player1.hand.card2.rank),
+                get_suit_name(game->player1.hand.card2.suit));
+        }
+        else {
+            printf("Карты игрока 1: не заданы\n");
+        }
+
+        // были ли карты введены для 2-го игрока?
+        if (game->player2.hand.card1.rank != NONE_RANK && game->player2.hand.card2.rank != NONE_RANK) {
+            printf("Карты игрока 2: %s %s и %s %s\n",
+                get_rank_name(game->player2.hand.card1.rank),
+                get_suit_name(game->player2.hand.card1.suit),
+                get_rank_name(game->player2.hand.card2.rank),
+                get_suit_name(game->player2.hand.card2.suit));
+        }
+        else {
+            printf("Карты игрока 2: не заданы\n");
+        }
+
+        if (strcmp(game->phase, "preflop") == 0) {
+            printf("Карты на столе: отсутствуют\n");
+        }
+        else {
+            display_board_cards(&game->board);
+        }
+
+        printf("Текущяя стадия игры (улица): %s\n", game->phase);
+        printf("================================================\n");
+        printf("               Редактор стола                   \n");
+        printf("================================================\n");
+        printf("1. Добавить/изменить Flop (3 карты)\n");
+        printf("2. Добавить/изменить Turn (4-ая карта)\n");
+        printf("3. Добавить/изменить River (5-ая карта)\n");
+        printf("4. Заполнить Flop случайными картами\n");
+        printf("5. Заполнить Turn случайными картами\n");
+        printf("6. Заполнить River случайными картами\n");
+        printf("7. Очистить стол\n");
+        printf("------------------------------------------------\n");
+        printf("0. Выйти\n");
+        printf("================================================\n");
+        printf("Выберите действие: ");
+        choice = (int)scanf_secure("int");
+
+        switch (choice) {
+        case 1:
+            printf("Редактирование Flop (первая, вторая и третья карты на столе)\n");
+            input_board_cards(game, used_cards, 0, 3);  // Ввод трёх карт на флоп
+            break;
+
+        case 2:
+            if (game->board.num_cards < 3) {
+                printf("Сначала необходимо добавить Flop!\n");
+                press_any_key_to_continue();
+            }
+            else {
+                printf("Редактирование Turn (четвёртая карта)\n");
+                input_board_cards(game, used_cards, 3, 1);  // Ввод одной карты на тёрн
+            }
+            break;
+
+        case 3:
+            if (game->board.num_cards < 4) {
+                printf("Сначала необходимо добавить Turn!\n");
+                press_any_key_to_continue();
+            }
+            else {
+                printf("Редактирование River (пятая карта)\n");
+                input_board_cards(game, used_cards, 4, 1);  // Ввод одной карты на ривер
+            }
+            break;
+
+        case 4:
+            if (game->board.num_cards < 3) {
+                printf("Редактирование Flop (случайные 3 карты)\n");
+                randomize_board_cards(game, used_cards, 0, 3);  // Случайная раздача 3 карт на флоп
+            }
+            else {
+                printf("Флоп уже задан! Сначала очистите стол.\n");
+                press_any_key_to_continue();
+            }
+            break;
+
+        case 5:
+            if (game->board.num_cards < 3) {
+                printf("Сначала необходимо добавить Flop!\n");
+                press_any_key_to_continue();
+            }
+            else if (game->board.num_cards == 4 || game->board.num_cards == 5) {
+                printf("Терн уже задан! Сначала очистите стол.\n");
+                press_any_key_to_continue();
+            }
+            else {
+                printf("Редактирование Turn (случайная 4-ая карта)\n");
+                randomize_board_cards(game, used_cards, 3, 1);  // Случайная раздача 1 карты на тёрн
+            }
+
+            break;
+
+        case 6:
+            if (game->board.num_cards < 4) {
+                printf("Сначала необходимо добавить Turn!\n");
+                press_any_key_to_continue();
+            }
+            else if (game->board.num_cards == 5) {
+                printf("Ривер уже задан! Сначала очистите стол.\n");
+                press_any_key_to_continue();
+            }
+            else {
+                printf("Редактирование River (случайная 5-ая карта)\n");
+                randomize_board_cards(game, used_cards, 4, 1);  // Случайная раздача 1 карты на ривер
+            }
+            break;
+
+        case 7:
+            clear_board(game, used_cards);
+            printf("Стол очищен.\n");
+            press_any_key_to_continue();
+            break;
+
+        case 0:
+            exit_editor = true;
+            break;
+
+        default:
+            printf("Неверный выбор! Попробуйте снова.\n");
+            press_any_key_to_continue();
+            break;
+        }
+        clearConsole();
+    }
+}
+
 
 
 //Инициализация карты//
@@ -519,11 +706,12 @@ void display_board_cards(const Board* board) {
 }
 
 
-void print_preflop_hand(PokerHand hand) {
+void print_hand(PokerHand hand) {
     switch (hand.hand_rank) {
     case STRAIGHT_FLUSH:
         printf("Комбинация: Стрит-флеш\n");
         printf("Старшая карта: %d\n", hand.high_card);
+        printf("Кикер: %d\n", hand.kicker[0]);
         break;
     case FOUR_OF_A_KIND:
         printf("Комбинация: Каре %d\n", hand.high_card);
@@ -544,6 +732,7 @@ void print_preflop_hand(PokerHand hand) {
         break;
     case THREE_OF_A_KIND:
         printf("Комбинация: Сет (тройка) %d\n", hand.high_card);
+        printf("Кикер: %d\n", hand.kicker[0]);
         break;
     case TWO_PAIR:
         printf("Комбинация: Две пары\n");
@@ -552,6 +741,7 @@ void print_preflop_hand(PokerHand hand) {
         break;
     case ONE_PAIR:
         printf("Комбинация: Пара %d\n", hand.high_card);
+        printf("Кикер: %d\n", hand.kicker[0]);
         break;
     case HIGH_CARD:
         printf("Комбинация: Старшая карта %d\n", hand.high_card);
@@ -1020,14 +1210,20 @@ void fill_board_with_random_cards(Game* game, const char* phase) {
 
   
     int cards_needed = 0;
-    if (strcmp(phase, "flop") == 0) {
+    if (strcmp(phase, "preflop") == 0) {
         cards_needed = 3;  // На флопе выкладываются 3 заветные карты ну и там по аналогии...
     }
-    else if (strcmp(phase, "turn") == 0) {
+    else if (strcmp(phase, "flop") == 0) {
         cards_needed = 4;  
     }
-    else if (strcmp(phase, "river") == 0) {
+    else if (strcmp(phase, "turn") == 0) {
         cards_needed = 5;  
+    }
+    else if (strcmp(phase, "river") == 0) {
+        printf("Стол полный!\n");
+        press_any_key_to_continue();
+        clearConsole();
+        return;
     }
 
     // Заполняем доску недостающими картами
@@ -1048,73 +1244,20 @@ void fill_board_with_random_cards(Game* game, const char* phase) {
     }
 }
 
-void print_editBoardMenu(Game* game, bool used_cards[15][5]) {
-    int choice;
-    bool exit_editor = false;
-
-    while (!exit_editor) {
-        printf("================================================\n");
-        printf("               Редактор стола                   \n");
-        printf("================================================\n");
-        printf("1. Добавить/изменить Flop (3 карты)\n");
-        printf("2. Добавить/изменить Turn (4-ая карта)\n");
-        printf("3. Добавить/изменить River (5-ая карта)\n");
-        printf("------------------------------------------------\n");
-        printf("0. Выйти\n");
-        printf("================================================\n");
-        printf("Выберите действие: ");
-        choice = (int)scanf_secure("int");
-
-        switch (choice) {
-        case 1:
-            printf("Редактирование Flop (первая, вторая и третья карты на столе)\n");
-            input_board_cards(game, used_cards, 0, 3);  // Ввод трёх карт на флопетский
-            break;
-
-        case 2:
-            if (game->board.num_cards < 3) {
-                printf("Сначала необходимо добавить Flop!\n");
-                press_any_key_to_continue();
-            }
-            else {
-                printf("Редактирование Turn (четвёртая карта)\n");
-                input_board_cards(game, used_cards, 3, 1);  // Ввод одной карты на тёёёрн
-            }
-            break;
-
-        case 3:
-            if (game->board.num_cards < 4) {
-                printf("Сначала необходимо добавить Turn!\n");
-                press_any_key_to_continue();
-            }
-            else {
-                printf("Редактирование River (пятая карта)\n");
-                input_board_cards(game, used_cards, 4, 1);  // Ввод одной карты на river
-            }
-            break;
-
-        case 0:
-            exit_editor = true;
-            break;
-
-        default:
-            printf("Неверный выбор! Попробуйте снова.\n");
-            press_any_key_to_continue();
-            break;
-        }
-        clearConsole();
-    }
-}
-
 void input_board_cards(Game* game, bool used_cards[15][5], int start_index, int num_cards) {
     int rank_choice, suit_choice;
+
+    // Временный массив для хранения карт, которые будут добавлены на стол, если ввод завершится корректно
+    Card temp_cards[5];
+    int temp_card_count = 0;
 
     for (int i = 0; i < num_cards; i++) {
         do {
             printf("Введите ранг карты %d (2-14) или 0 для выхода: ", start_index + i + 1);
             rank_choice = (int)scanf_secure("int");
             if (rank_choice == 0) {
-                return;  
+                // Если пользователь выходит, возвращаемся без сохранения карт
+                return;
             }
             if (rank_choice < 2 || rank_choice > 14) {
                 printf("Неверный ранг карты! Попробуйте снова.\n");
@@ -1124,30 +1267,131 @@ void input_board_cards(Game* game, bool used_cards[15][5], int start_index, int 
             printf("Введите масть карты %d (1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики) или 0 для выхода: ", start_index + i + 1);
             suit_choice = (int)scanf_secure("int");
             if (suit_choice == 0) {
-                return;  
+                // Если пользователь выходит, возвращаемся без сохранения карт
+                return;
             }
             if (suit_choice < 1 || suit_choice > 4) {
                 printf("Неверная масть карты! Попробуйте снова.\n");
                 continue;
             }
 
-            // Проверка на уникальность card (среди всех уже использованных карт)aaaaaaaa
+            // Проверка на уникальность карты (среди всех уже использованных карт)
             if (used_cards[rank_choice][suit_choice]) {
                 printf("Эта карта уже используется! Попробуйте другую карту.\n");
             }
             else {
-                // Сохранение карты на доске
-                game->board.cards[start_index + i].rank = (Rank)rank_choice;
-                game->board.cards[start_index + i].suit = (Suit)suit_choice;
-                used_cards[rank_choice][suit_choice] = true;  // Помечаем fisting card
-                if (start_index + i >= game->board.num_cards) {
-                    game->board.num_cards++;
-                }
+                // Сохраняем карту во временный массив
+                temp_cards[i].rank = (Rank)rank_choice;
+                temp_cards[i].suit = (Suit)suit_choice;
+                temp_card_count++;
                 break;
             }
         } while (1);
     }
+
+    // Если пользователь ввёл все карты, то сохраняем их на доске
+    if (temp_card_count == num_cards) {
+        for (int i = 0; i < num_cards; i++) {
+            game->board.cards[start_index + i] = temp_cards[i];
+            used_cards[temp_cards[i].rank][temp_cards[i].suit] = true;  // Помечаем карту как использованную
+        }
+        // Обновляем количество карт на доске
+        game->board.num_cards = start_index + num_cards;
+
+        // Изменяем фазу игры в зависимости от текущего состояния стола
+        if (game->board.num_cards == 3) {
+            strcpy(game->phase, "flop");
+        }
+        else if (game->board.num_cards == 4) {
+            strcpy(game->phase, "turn");
+        }
+        else if (game->board.num_cards == 5) {
+            strcpy(game->phase, "river");
+        }
+    }
+    else {
+        printf("Не удалось ввести все карты, изменения отменены.\n");
+    }
 }
+
+
+void randomize_board_cards(Game* game, bool used_cards[15][5], int start_index, int num_cards) {
+    int rank_choice, suit_choice;
+
+    // Временный массив для хранения карт, которые будут добавлены на стол
+    Card temp_cards[5];
+    int temp_card_count = 0;
+
+    for (int i = 0; i < num_cards; i++) {
+        do {
+            // Генерация случайного ранга (от 2 до 14, где 14 = туз)
+            rank_choice = rand() % 13 + 2;
+
+            // Генерация случайной масти (от 1 до 4, где 1 = Черви, 2 = Бубны, 3 = Трефы, 4 = Пики)
+            suit_choice = rand() % 4 + 1;
+
+            // Проверка на уникальность карты (среди всех уже использованных карт)
+            if (!used_cards[rank_choice][suit_choice]) {
+                // Сохраняем карту во временный массив
+                temp_cards[i].rank = (Rank)rank_choice;
+                temp_cards[i].suit = (Suit)suit_choice;
+                temp_card_count++;
+                used_cards[rank_choice][suit_choice] = true;  // Помечаем карту как использованную
+                break;
+            }
+        } while (1);  // Продолжаем генерировать до тех пор, пока не найдём уникальную карту
+    }
+
+    // Сохраняем карты на доске
+    if (temp_card_count == num_cards) {
+        for (int i = 0; i < num_cards; i++) {
+            game->board.cards[start_index + i] = temp_cards[i];
+        }
+
+        // Обновляем количество карт на доске
+        game->board.num_cards = start_index + num_cards;
+
+        // Изменяем фазу игры в зависимости от текущего состояния стола
+        if (game->board.num_cards == 3) {
+            strcpy(game->phase, "flop");
+        }
+        else if (game->board.num_cards == 4) {
+            strcpy(game->phase, "turn");
+        }
+        else if (game->board.num_cards == 5) {
+            strcpy(game->phase, "river");
+        }
+    }
+    else {
+        printf("Не удалось ввести все карты, изменения отменены.\n");
+    }
+}
+
+
+
+
+// Функция для очистки стола
+void clear_board(Game* game, bool used_cards[15][5]) {
+    // Сбрасываем все карты на борде
+    for (int i = 0; i < 5; i++) {
+        game->board.cards[i].rank = NONE_RANK;
+        game->board.cards[i].suit = NONE_SUIT;
+    }
+
+    game->board.num_cards = 0;
+
+    // Очищаем массив использованных карт
+    for (int rank = 2; rank <= 14; rank++) {
+        for (int suit = 1; suit <= 4; suit++) {
+            used_cards[rank][suit] = false;
+        }
+    }
+
+    strcpy(game->phase, "preflop");
+
+    printf("Стол очищен!\n");
+}
+
 
 //Эта функция нигде не используется но мне жалко ее удалять по сути проверка была ли карта уже использована
 bool is_card_used(Card* board_cards, int num_cards, Card new_card) {
