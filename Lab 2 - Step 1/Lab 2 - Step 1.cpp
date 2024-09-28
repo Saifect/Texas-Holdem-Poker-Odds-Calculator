@@ -83,7 +83,6 @@ typedef struct {
     PokerHandRank hand_rank; // Ранг комбинации
     Rank high_card;          // Старшая карта (стрит и флэш)
     Rank kicker[4];           // Кикеры макс 4
-    Card cards[5];       // Массив карт комбинации и кикеров
 } PokerHand;
 
 
@@ -218,7 +217,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: In developed\n");
-        printf("Version program: ALPHA 1.0\n");
+        printf("Version program: ALPHA 1.1\n");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;
@@ -1101,28 +1100,25 @@ void deal_random_cards(Player* player1, Player* player2, short сurrent_player) 
    
 }
 
+// Функция для сравнения двух покерных рук, включая кикеры
 int compare_hands(PokerHand hand1, PokerHand hand2) {
-    if (hand1.hand_rank > hand2.hand_rank) {
-        return 1;
-    }
-    else if (hand1.hand_rank < hand2.hand_rank) {
-        return -1;
-    }
-    else {
-        // Если ранги рук одинаковы, нужно проверить кикеры и другие карты
-        for (int i = 0; i < 5; i++) {  // Сравниваем все карты по рангу (сначала основная комбинация, потом кикеры)
-            if (hand1.cards[i].rank > hand2.cards[i].rank) {
-                return 1;
-            }
-            else if (hand1.cards[i].rank < hand2.cards[i].rank) {
-                return -1;
-            }
-        }
-        // Если все карты равны, это ничья
-        return 0;
-    }
-}
+    // Сравниваем комбинации (старшинство комбинаций)
+    if (hand1.hand_rank > hand2.hand_rank) return 1;
+    if (hand1.hand_rank < hand2.hand_rank) return -1;
 
+    // Если комбинации равны, сравниваем старшие карты комбинации
+    if (hand1.high_card > hand2.high_card) return 1;
+    if (hand1.high_card < hand2.high_card) return -1;
+
+    // Если старшие карты комбинации равны, сравниваем кикеры (если есть)
+    for (int i = 0; i < 2; i++) {
+        if (hand1.kicker[i] > hand2.kicker[i]) return 1;
+        if (hand1.kicker[i] < hand2.kicker[i]) return -1;
+    }
+
+    // Если все кикеры равны - ничья
+    return 0;
+}
 
 PokerHand determine_hand(Hand hand, Board board) {
     PokerHand result;
@@ -1155,6 +1151,9 @@ PokerHand determine_hand(Hand hand, Board board) {
     for (int rank = ACE; rank >= TWO; rank--) {
         if (card_count[rank] == 4) {
             four_of_a_kind = rank;
+        }
+        else if (card_count[rank] == 3) {
+            three_of_a_kind = rank;
         }
         else if (card_count[rank] == 2) {
             if (top_pair == NONE_RANK) {
@@ -1611,6 +1610,7 @@ void calculate_probabilities(Game* game, Player* player1, Player* player2, Board
         (float)player2->losses / choice_numSimulations * 100,
         (float)player2->ties / choice_numSimulations * 100);
 }
+
 
 
 
