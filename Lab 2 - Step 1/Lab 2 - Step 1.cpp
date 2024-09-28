@@ -83,6 +83,7 @@ typedef struct {
     PokerHandRank hand_rank; // Ранг комбинации
     Rank high_card;          // Старшая карта (стрит и флэш)
     Rank kicker[4];           // Кикеры макс 4
+    Card cards[5];       // Массив карт комбинации и кикеров
 } PokerHand;
 
 
@@ -483,6 +484,8 @@ void print_probabilityMenu(Game* game, bool used_cards[15][5]) {
             }
             else {
                 printf("Вы ввели значение вне диапазона!\n");
+                press_any_key_to_continue();
+                clearConsole();
             }
             break;
        
@@ -1098,52 +1101,29 @@ void deal_random_cards(Player* player1, Player* player2, short сurrent_player) 
    
 }
 
-// Функция для сравнения комбинаций двух игроков
 int compare_hands(PokerHand hand1, PokerHand hand2) {
-    // Сравнение комбинаций 
     if (hand1.hand_rank > hand2.hand_rank) {
-        return 1;  // Игрок 1 имеет более сильную комбинацию
+        return 1;
     }
-    else if (hand2.hand_rank > hand1.hand_rank) {
-        return 2;  // Игрок 2 имеет более сильную комбинацию
+    else if (hand1.hand_rank < hand2.hand_rank) {
+        return -1;
     }
     else {
-        // Если комбинации одинаковы, сравниваем старшие карты
-        if (hand1.high_card > hand2.high_card) {
-            return 1;
-        }
-        else if (hand2.high_card > hand1.high_card) {
-            return 2;
-        }
-        else {
-            // Если комбинации и старшие карты одинаковы, сравниваем кикеры
-            for (int i = 0; i < 4; i++) {
-                if (hand1.kicker[i] > hand2.kicker[i]) {
-                    return 1;  // Игрок 1 выигрывает по кикеру
-                }
-                else if (hand2.kicker[i] > hand1.kicker[i]) {
-                    return 2;  // Игрок 2 выигрывает по кикеру
-                }
+        // Если ранги рук одинаковы, нужно проверить кикеры и другие карты
+        for (int i = 0; i < 5; i++) {  // Сравниваем все карты по рангу (сначала основная комбинация, потом кикеры)
+            if (hand1.cards[i].rank > hand2.cards[i].rank) {
+                return 1;
             }
-            return 0;  // Ничья если все карты одинаковы
+            else if (hand1.cards[i].rank < hand2.cards[i].rank) {
+                return -1;
+            }
         }
+        // Если все карты равны, это ничья
+        return 0;
     }
 }
 
 
-
-// Определение комбинации для руки и доски
-PokerHand evaluate_hand(Hand hand, Card board[5]) {
-    Board board_struct;
-    for (int i = 0; i < 5; i++) {
-        board_struct.cards[i] = board[i];
-    }
-    board_struct.num_cards = 5;
-    return determine_hand(hand, board_struct);
-}
-
-
-//Определения комбинаций
 PokerHand determine_hand(Hand hand, Board board) {
     PokerHand result;
     result.hand_rank = HIGH_CARD;
@@ -1159,14 +1139,16 @@ PokerHand determine_hand(Hand hand, Board board) {
         all_cards[2 + i] = board.cards[i];
     }
 
+    // Подсчет количества карт по рангу и масти
     for (int i = 0; i < 2 + board.num_cards; i++) {
         card_count[all_cards[i].rank]++;
         suit_count[all_cards[i].suit]++;
     }
 
     int pairs = 0, three_of_a_kind = 0, four_of_a_kind = 0;
-    int top_pair = 0, second_pair = 0;
-    int highest_rank = 0, kicker[2] = { 0 };
+    Rank top_pair = NONE_RANK, second_pair = NONE_RANK;
+    Rank highest_rank = NONE_RANK;
+    Rank kicker[2] = { NONE_RANK, NONE_RANK };
     int flush_suit_index = -1;
 
     // Определение пар, тройки и каре
@@ -1174,20 +1156,17 @@ PokerHand determine_hand(Hand hand, Board board) {
         if (card_count[rank] == 4) {
             four_of_a_kind = rank;
         }
-        else if (card_count[rank] == 3) {
-            three_of_a_kind = rank;
-        }
         else if (card_count[rank] == 2) {
-            if (top_pair == 0) {
-                top_pair = rank;
+            if (top_pair == NONE_RANK) {
+                top_pair = static_cast<Rank>(rank);
             }
             else {
                 second_pair = top_pair;
-                top_pair = rank;
+                top_pair = static_cast<Rank>(rank);
             }
         }
         else if (card_count[rank] == 1 && rank > highest_rank) {
-            highest_rank = rank;
+            highest_rank = static_cast<Rank>(rank);
         }
     }
 
@@ -1199,9 +1178,10 @@ PokerHand determine_hand(Hand hand, Board board) {
         }
     }
 
+    // Если есть флеш, проверяем наличие стрит-флеша
     if (flush_suit_index != -1) {
         result.hand_rank = FLUSH;
-        int flush_cards[5] = { 0 };
+        Rank flush_cards[5] = { NONE_RANK };
         int count = 0;
 
         for (int i = 0; i < 2 + board.num_cards; i++) {
@@ -1212,7 +1192,7 @@ PokerHand determine_hand(Hand hand, Board board) {
         }
 
         if (count == 5) {
-            result.high_card = (Rank)flush_cards[0];
+            result.high_card = flush_cards[0];  // Обработка старших карт для флеша
             bool is_straight_flush = true;
             for (int i = 0; i < count - 1; i++) {
                 if (flush_cards[i] - 1 != flush_cards[i + 1]) {
@@ -1223,7 +1203,7 @@ PokerHand determine_hand(Hand hand, Board board) {
 
             if (is_straight_flush) {
                 result.hand_rank = STRAIGHT_FLUSH;
-                result.high_card = (Rank)flush_cards[0];
+                result.high_card = flush_cards[0];
                 return result;
             }
         }
@@ -1236,7 +1216,7 @@ PokerHand determine_hand(Hand hand, Board board) {
             consecutive++;
             if (consecutive == 5) {
                 result.hand_rank = STRAIGHT;
-                result.high_card = (Rank)rank;
+                result.high_card = static_cast<Rank>(rank);
                 return result;
             }
         }
@@ -1248,11 +1228,11 @@ PokerHand determine_hand(Hand hand, Board board) {
     // Проверка на каре
     if (four_of_a_kind > 0) {
         result.hand_rank = FOUR_OF_A_KIND;
-        result.high_card = (Rank)four_of_a_kind;
+        result.high_card = static_cast<Rank>(four_of_a_kind);
 
         for (int rank = ACE; rank >= TWO; rank--) {
             if (card_count[rank] > 0 && rank != four_of_a_kind) {
-                result.kicker[0] = (Rank)rank;
+                result.kicker[0] = static_cast<Rank>(rank);
                 break;
             }
         }
@@ -1262,45 +1242,50 @@ PokerHand determine_hand(Hand hand, Board board) {
     // Проверка на фулл-хаус
     if (three_of_a_kind > 0 && top_pair > 0) {
         result.hand_rank = FULL_HOUSE;
-        result.high_card = (Rank)three_of_a_kind;
-        result.kicker[0] = (Rank)top_pair;
+        result.high_card = static_cast<Rank>(three_of_a_kind);
+        result.kicker[0] = top_pair;
         return result;
     }
 
     // Проверка на тройку
     if (three_of_a_kind > 0) {
         result.hand_rank = THREE_OF_A_KIND;
-        result.high_card = (Rank)three_of_a_kind;
+        result.high_card = static_cast<Rank>(three_of_a_kind);
         return result;
     }
 
     // Проверка на две пары
     if (top_pair > 0 && second_pair > 0) {
         result.hand_rank = TWO_PAIR;
-        result.high_card = (Rank)top_pair;
-        result.kicker[0] = (Rank)second_pair;
+        result.high_card = top_pair;
+        result.kicker[0] = second_pair;
         return result;
     }
 
     // Проверка на одну пару
     if (top_pair > 0) {
         result.hand_rank = ONE_PAIR;
-        result.high_card = (Rank)top_pair;
-        result.kicker[0] = (Rank)highest_rank;
+        result.high_card = top_pair;
+
+        // Кикеры для пары
+        int kicker_count = 0;
+        for (int rank = ACE; rank >= TWO; rank--) {
+            if (card_count[rank] > 0 && rank != top_pair) {
+                result.kicker[kicker_count++] = static_cast<Rank>(rank);
+                if (kicker_count == 2) break;
+            }
+        }
         return result;
     }
 
-    // Старшая карта
+    // Если ни одна комбинация не собрана — проверяем старшую карту и кикеры
     result.hand_rank = HIGH_CARD;
-    result.high_card = (Rank)((hand.card1.rank > hand.card2.rank) ? hand.card1.rank : hand.card2.rank);
+    result.high_card = (hand.card1.rank > hand.card2.rank) ? hand.card1.rank : hand.card2.rank;
     kicker[0] = (hand.card1.rank > hand.card2.rank) ? hand.card2.rank : hand.card1.rank;
-    result.kicker[0] = (Rank)kicker[0];
+    result.kicker[0] = kicker[0];
 
     return result;
 }
-
-
-
 
 
 // Определяем максимальный размер доски
@@ -1546,8 +1531,8 @@ bool is_unique_cards(Card* cards, int count) {
     return true;
 }
 
-void calculate_probabilities(Game* game, Player* player1, Player* player2, Board* board, bool used_cards[15][5],int choice_numSimulations) {
-    
+void calculate_probabilities(Game* game, Player* player1, Player* player2, Board* board, bool used_cards[15][5], int choice_numSimulations) {
+
     player1->wins = 0;
     player1->ties = 0;
     player1->losses = 0;
@@ -1605,7 +1590,7 @@ void calculate_probabilities(Game* game, Player* player1, Player* player2, Board
             player1->wins++;
             player2->losses++;
         }
-        else if (comparison == 2) {
+        else if (comparison == -1) {  // Исправлено с comparison == 2 на -1
             player2->wins++;
             player1->losses++;
         }
@@ -1620,12 +1605,13 @@ void calculate_probabilities(Game* game, Player* player1, Player* player2, Board
         (float)player1->wins / choice_numSimulations * 100,
         (float)player1->losses / choice_numSimulations * 100,
         (float)player1->ties / choice_numSimulations * 100);
-    
+
     printf("Игрок 2:\n Победы: %.2f%%\n Поражения: %.2f%%\n Ничьи: %.2f%%\n",
         (float)player2->wins / choice_numSimulations * 100,
         (float)player2->losses / choice_numSimulations * 100,
         (float)player2->ties / choice_numSimulations * 100);
 }
+
 
 
 
