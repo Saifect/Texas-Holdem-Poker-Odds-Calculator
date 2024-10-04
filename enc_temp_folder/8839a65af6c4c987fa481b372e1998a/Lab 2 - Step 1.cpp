@@ -198,7 +198,8 @@ void handle_mainMenu_choice(int choice) {
     case 0:
         printf("Выход из программы.\n");
         exit(0); 
-        break;
+
+        //ATTENTION НЕ КОСТЫЛЬ А ФИЧА
     case -1:
         clearConsole(); //Обработка неправильного ввода функции scanf_secure
         break;
@@ -220,7 +221,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: In developed\n");
-        printf("Version program: ALPHA 1.3\n");
+        printf("Version program: ALPHA 1.2\n");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;
@@ -1721,7 +1722,7 @@ void calculate_probabilities(Game* game, Player* player1, Player* player2, Board
             player1->wins++;
             player2->losses++;
         }
-        else if (comparison == -1) {  
+        else if (comparison == -1) {  // Исправлено с comparison == 2 на -1
             player2->wins++;
             player1->losses++;
         }
