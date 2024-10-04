@@ -219,8 +219,8 @@ void handle_mainMenu_choice(int choice) {
         clearConsole();
         break;
     case 4:
-        printf("Status: In developed\n");
-        printf("Version program: ALPHA 1.3\n");
+        printf("Status: Stable (ALPHA)\n");
+        printf("Version program: 1.4\n");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;
@@ -1400,50 +1400,69 @@ bool is_unique_cards(Card* cards, int count) {
     return true;
 }
 
-// Функция для сравнения двух покерных рук, включая кикеры
 int compare_hands(PokerCombination hand1, PokerCombination hand2) {
-    // Сравниваем комбинации (старшинство комбинаций)
+    // Сравниваем ранги комбинаций (старшинство комбинаций)
     if (hand1.hand_rank > hand2.hand_rank) return 1;
     if (hand1.hand_rank < hand2.hand_rank) return -1;
 
-    // Если комбинации равны, сравниваем старшие карты комбинации
+    // Если ранги комбинаций равны, сравниваем старшие карты комбинации
     if (hand1.high_card > hand2.high_card) return 1;
     if (hand1.high_card < hand2.high_card) return -1;
 
-    // Сравнение дополнительных карт в зависимости от комбинации
+    // Если старшие карты комбинаций равны, сравниваем кикеры
     switch (hand1.hand_rank) {
-    case HIGH_CARD:
+    case STRAIGHT:
+    case STRAIGHT_FLUSH:
+        // Специальная обработка для стритов и стрит-флешей
+        // Если раздача на доске может дать ничью, нужно учитывать это
+        if (hand1.high_card == hand2.high_card) {
+            // Если оба стриты имеют одинаковую старшую карту, то это ничья
+            return 0;
+        }
+        break;
+
+    case FOUR_OF_A_KIND:
+    case FULL_HOUSE:
+        // У каре и фулл-хауса сравниваем один кикер
+        if (hand1.kicker[0] > hand2.kicker[0]) return 1;
+        if (hand1.kicker[0] < hand2.kicker[0]) return -1;
+        break;
+
+    case THREE_OF_A_KIND:
     case ONE_PAIR:
     case TWO_PAIR:
-    case THREE_OF_A_KIND:
-    case FOUR_OF_A_KIND:
-        // Для комбинаций с кикерами, начиная с старших кикеров
+        // Для трипса, одной пары и двух пар используем два кикера
         for (int i = 0; i < 2; i++) {
             if (hand1.kicker[i] > hand2.kicker[i]) return 1;
             if (hand1.kicker[i] < hand2.kicker[i]) return -1;
         }
         break;
 
-    case FULL_HOUSE:
-        // Для фулл-хауса сравниваем тройки, затем пары
-        if (hand1.kicker[0] > hand2.kicker[0]) return 1;
-        if (hand1.kicker[0] < hand2.kicker[0]) return -1;
-        break;
-
-    case STRAIGHT:
     case FLUSH:
-    case STRAIGHT_FLUSH:
-        // Для стритов и флешей сравниваем старшие карты
+        // Для флеша все карты важны, сравниваем по убыванию
         for (int i = 0; i < 5; i++) {
             if (hand1.kicker[i] > hand2.kicker[i]) return 1;
             if (hand1.kicker[i] < hand2.kicker[i]) return -1;
         }
         break;
+
+    case HIGH_CARD:
+        // Для старшей карты сравниваем все пять карт
+        for (int i = 0; i < 5; i++) {
+            if (hand1.kicker[i] > hand2.kicker[i]) return 1;
+            if (hand1.kicker[i] < hand2.kicker[i]) return -1;
+        }
+        break;
+
+    default:
+        break;
     }
 
-    // Если все карты и кикеры равны - ничья
+    // Если все сравнения равны, значит ничья
     return 0;
 }
+
+
 
 
 
@@ -1451,6 +1470,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
     PokerCombination result;
     result.hand_rank = HIGH_CARD;
     result.high_card = NONE_RANK;
+    result.kicker[0] = result.kicker[1] = NONE_RANK; // Инициализация кикеров
 
     int card_count[15] = { 0 };
     int suit_count[5] = { 0 };
@@ -1471,9 +1491,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
 
     Rank top_pair = NONE_RANK, second_pair = NONE_RANK;
     Rank highest_rank = NONE_RANK;
-    Rank kicker[2] = { NONE_RANK, NONE_RANK };
     int flush_suit_index = -1;
-
     int three_of_a_kind = 0, four_of_a_kind = 0;
 
     // Определение пар, тройки и каре
@@ -1498,15 +1516,15 @@ PokerCombination determine_hand(Hand hand, Board board) {
         }
     }
 
-    // Проверка на фулл-хаус (третье и второе условие)
+    // Проверка на фулл-хаус
     if (three_of_a_kind > 0 && top_pair > 0) {
         result.hand_rank = FULL_HOUSE;
-        result.high_card = static_cast<Rank>(three_of_a_kind);  // Тройка — старшая
-        result.kicker[0] = static_cast<Rank>(top_pair);         // Пара — младшая
+        result.high_card = static_cast<Rank>(three_of_a_kind); // Тройка — старшая
+        result.kicker[0] = static_cast<Rank>(top_pair);       // Пара — младшая
         return result;
     }
 
-    // Определение наличия флеша (5 карт одной масти)
+    // Определение наличия флеша
     for (int suit = 0; suit < 5; suit++) {
         if (suit_count[suit] >= 5) {
             flush_suit_index = suit;
@@ -1514,7 +1532,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
         }
     }
 
-    // Если есть флеш, проверяем на стрит-флеш
+    // Проверка на стрит-флеш
     if (flush_suit_index != -1) {
         Rank flush_cards[7];
         int flush_card_count = 0;
@@ -1527,30 +1545,19 @@ PokerCombination determine_hand(Hand hand, Board board) {
         }
 
         // Сортируем карты флеша по убыванию
-        for (int i = 0; i < flush_card_count - 1; i++) {
-            for (int j = i + 1; j < flush_card_count; j++) {
-                if (flush_cards[i] < flush_cards[j]) {
-                    Rank temp = flush_cards[i];
-                    flush_cards[i] = flush_cards[j];
-                    flush_cards[j] = temp;
-                }
-            }
-        }
+        // Сортировка по убыванию по рангу
+        qsort(flush_cards, flush_card_count, sizeof(Rank), [](const void* a, const void* b) {
+            return (*(Rank*)b - *(Rank*)a);
+            });
 
         // Проверяем наличие стрит-флеша
-        int consecutive = 1;
-        for (int i = 0; i < flush_card_count - 1; i++) {
-            if (flush_cards[i] - flush_cards[i + 1] == 1) {
-                consecutive++;
-            }
-            else if (flush_cards[i] != flush_cards[i + 1]) {
-                consecutive = 1; // Сброс последовательности
-            }
-
-            // Если есть 5 последовательных карт, это стрит-флеш
-            if (consecutive == 5) {
+        for (int i = 0; i < flush_card_count - 4; i++) {
+            if (flush_cards[i] - flush_cards[i + 1] == 1 &&
+                flush_cards[i + 1] - flush_cards[i + 2] == 1 &&
+                flush_cards[i + 2] - flush_cards[i + 3] == 1 &&
+                flush_cards[i + 3] - flush_cards[i + 4] == 1) {
                 result.hand_rank = STRAIGHT_FLUSH;
-                result.high_card = flush_cards[i - 3]; // Старшая карта стрит-флеша
+                result.high_card = flush_cards[i]; // Старшая карта стрит-флеша
                 return result;
             }
         }
@@ -1564,6 +1571,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
     }
 
     // Проверка на стрит
+    // Упрощаем проверку на стрит
     int consecutive = 0;
     for (int rank = ACE; rank >= TWO; rank--) {
         if (card_count[rank] > 0) {
@@ -1579,34 +1587,21 @@ PokerCombination determine_hand(Hand hand, Board board) {
         }
     }
 
-    // Остальная логика (пары, тройки, каре, и т.д.) остается без изменений...
-
     // Проверка на карманную пару
     if (hand.card1.rank == hand.card2.rank) {
         top_pair = hand.card1.rank;
         if (card_count[hand.card1.rank] == 3) {
-            result.hand_rank = THREE_OF_A_KIND;
+            result.hand_rank = THREE_OF_A_KIND; // Превращается в сет
             result.high_card = hand.card1.rank;
             result.kicker[0] = NONE_RANK;  // Нет кикера для сета
-            return result; // Карманная пара превращается в сет
+            return result;
         }
         if (card_count[hand.card1.rank] == 2) {
             result.hand_rank = ONE_PAIR;  // Карманная пара
             result.high_card = hand.card1.rank;
-            // Заполнение кикеров для карманной пары
-            int kicker_count = 0;
-            for (int rank = ACE; rank >= TWO; rank--) {
-                if (card_count[rank] > 0 && rank != hand.card1.rank) {
-                    kicker[kicker_count++] = static_cast<Rank>(rank);
-                    if (kicker_count == 2) break;
-                }
-            }
-            result.kicker[0] = kicker[0];
-            result.kicker[1] = kicker[1];
-            return result;
+            return result; // Кикеры не нужны для карманной пары
         }
     }
-
 
     // Проверка на каре
     if (four_of_a_kind > 0) {
@@ -1616,15 +1611,13 @@ PokerCombination determine_hand(Hand hand, Board board) {
         return result;
     }
 
-    // Проверка на трипс или сет
+    // Проверка на трипс
     if (three_of_a_kind > 0) {
         result.hand_rank = THREE_OF_A_KIND;
         result.high_card = static_cast<Rank>(three_of_a_kind);
         result.kicker[0] = highest_rank;
-        result.kicker[1] = second_pair; // или другой кикер
         return result;
     }
-
 
     // Проверка на две пары
     if (top_pair > 0 && second_pair > 0) {
@@ -1644,23 +1637,21 @@ PokerCombination determine_hand(Hand hand, Board board) {
         int kicker_count = 0;
         for (int rank = ACE; rank >= TWO; rank--) {
             if (card_count[rank] > 0 && rank != top_pair) {
-                kicker[kicker_count++] = static_cast<Rank>(rank);
+                result.kicker[kicker_count++] = static_cast<Rank>(rank);
                 if (kicker_count == 2) break;
             }
         }
-        result.kicker[0] = kicker[0];
-        result.kicker[1] = kicker[1];
         return result;
     }
 
     // Если ни одна комбинация не собрана — проверяем старшую карту и кикеры
     result.hand_rank = HIGH_CARD;
     result.high_card = (hand.card1.rank > hand.card2.rank) ? hand.card1.rank : hand.card2.rank;
-    kicker[0] = (hand.card1.rank > hand.card2.rank) ? hand.card2.rank : hand.card1.rank;
-    result.kicker[0] = kicker[0];
+    result.kicker[0] = (hand.card1.rank > hand.card2.rank) ? hand.card2.rank : hand.card1.rank;
 
     return result;
 }
+
 
 
 void calculate_probabilities(Game* game, Player* player1, Player* player2, Board* board, bool used_cards[15][5], int choice_numSimulations) {
