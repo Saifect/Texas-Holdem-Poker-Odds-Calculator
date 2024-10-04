@@ -220,7 +220,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: Stable (ALPHA)\n");
-        printf("Version program: 1.4\n");
+        printf("Version program: 1.5\n");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;
@@ -375,7 +375,7 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit) {
             printf("--------------\n");
             result_player1 = determine_hand(game->player1.hand, game->board);
             print_hand(result_player1);
-           
+            printf("\n");
         }
         else {
             printf("Карты 1-го игрока не заданы, поэтому у него не может быть комбинации!\n");
@@ -387,7 +387,7 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit) {
             printf("--------------\n");
             result_player2 = determine_hand(game->player2.hand, game->board);
             print_hand(result_player2);
-          
+            printf("\n");
         }
         else {
             printf("Карты 2-го игрока не заданы, поэтому у него не может быть комбинации!\n");
@@ -452,8 +452,8 @@ void print_probabilityMenu(Game* game, bool used_cards[15][5]) {
         printf("================================================\n");
         printf("       Редактор вычисления вероятностей         \n");
         printf("================================================\n");
-        printf("1. Метод симуляций Монте-Карло\n");
-        printf("2. Метод подсчёта количества аутов\n");
+        printf("1. Расчёт по методу симуляций Монте-Карло\n");
+        printf("2. Изменить количество симуляций\n");
         printf("-----------------------------------------------\n");
         printf("0. Назад\n");
         printf("================================================\n");
@@ -465,7 +465,7 @@ void print_probabilityMenu(Game* game, bool used_cards[15][5]) {
 }
 
 void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used_cards[15][5]) {
-    int choice_numSimulations;
+    int choice_numSimulations = 250000;
     switch (choice) {
     case 0:
         *exit = true; // Изменяем значение через указатель
@@ -473,24 +473,36 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
         break;
 
     case 1:
+     
+        if (choice_numSimulations >= 10 && choice_numSimulations <= 20000000) {
+            // Выполнение симуляций
+            printf("Загрузка...\n");
+            calculate_probabilities(game, &game->player1, &game->player2, &game->board, used_cards, choice_numSimulations); // Передаем количество симуляций
+            press_any_key_to_continue();
+            clearConsole();
+        }
+        
+        
+        break;
+
+    case 2:
         // Очистка экрана перед меню с симуляциями
         printf("-----------------------------------------------\n");
-        printf("Введите количество симуляций\nДиапазон значений от 10.000 до 2.000.000\n");
-        printf("(Рекомендуется 250.000 симуляций)\n");
+        printf("Введите количество симуляций\nДиапазон значений от 10 до 20.000.000\n");
+        printf("Рекомендуется 200.000 симуляций, значения >3.000.000 долго работают\n");
         printf("Или введите 0 для отмены\n");
         printf("-----------------------------------------------\n");
         printf("Ваш выбор: ");
         choice_numSimulations = scanf_secure("int");
-   
+
 
         if (choice_numSimulations == 0) {
             printf("Операция отменена.\n");
             press_any_key_to_continue();
             clearConsole();
         }
-        else if (choice_numSimulations >= 10000 && choice_numSimulations <= 2000000) {
-            // Выполнение симуляций
-            calculate_probabilities(game, &game->player1, &game->player2, &game->board, used_cards, choice_numSimulations); // Передаем количество симуляций
+        else if (choice_numSimulations >= 10 && choice_numSimulations <= 20000000) {
+            printf("Вы поставили %d симуляций для метода Монте-Карло\n", choice_numSimulations);
             press_any_key_to_continue();
             clearConsole();
         }
@@ -500,9 +512,6 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
             clearConsole();
         }
         break;
-
-    case 2:
-        printf("Не реализовано\n");
         press_any_key_to_continue();
         clearConsole();
         break;
@@ -1724,15 +1733,23 @@ void calculate_probabilities(Game* game, Player* player1, Player* player2, Board
     }
 
     // Вывод результатов
-    printf("Игрок 1:\n Победы: %.2f%%\n Поражения: %.2f%%\n Ничьи: %.2f%%\n",
+    printf("--------------\n");
+    printf(" Первый игрок \n");
+    printf("--------------\n");
+    printf("Победы: %.2f%%\n Поражения: %.2f%%\n Ничьи: %.2f%%\n",
         (float)player1->wins / choice_numSimulations * 100,
         (float)player1->losses / choice_numSimulations * 100,
         (float)player1->ties / choice_numSimulations * 100);
+    printf("\n");
 
-    printf("Игрок 2:\n Победы: %.2f%%\n Поражения: %.2f%%\n Ничьи: %.2f%%\n",
+    printf("--------------\n");
+    printf(" Второй игрок \n");
+    printf("--------------\n");
+    printf("Победы: %.2f%%\n Поражения: %.2f%%\n Ничьи: %.2f%%\n",
         (float)player2->wins / choice_numSimulations * 100,
         (float)player2->losses / choice_numSimulations * 100,
         (float)player2->ties / choice_numSimulations * 100);
+    printf("\n");
 }
 
 
