@@ -220,7 +220,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: Stable\n");
-        printf("Version program: 1.8\n");
+        printf("Version program: 1.7\n");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;
