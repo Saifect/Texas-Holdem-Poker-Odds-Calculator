@@ -220,7 +220,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: Stable\n");
-        printf("Version program: 1.8\n");
+        printf("Version program: 1.9\n");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;
@@ -1112,7 +1112,7 @@ void input_player_cards(Player* player, bool used_cards[15][5]) {
         printf("Введите ранг 2-ой карты (2-14) или 0 для выхода: ");
         rank_choice_card2 = (int)scanf_secure("int");
         if (rank_choice_card2 == 0) {
-            used_cards[rank_choice_card1][suit_choice_card1] = false;
+            
             return;
         }
         if (rank_choice_card2 < 2 || rank_choice_card2 > 14) {
