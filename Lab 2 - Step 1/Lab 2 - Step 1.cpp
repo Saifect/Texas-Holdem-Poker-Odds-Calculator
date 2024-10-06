@@ -40,14 +40,14 @@ typedef struct {
 	Card card2; //Вторая великолепная карта 
 }Hand;
 
-//Игрок//
+// Игроки
 typedef struct {
-	Hand hand;     //Рука игрока
-	double equity; //Вероятность забрать лавэ у соперника НЕ РЕАЛИЗОВАНО ПОКА но скоро будет 
+    Hand hand;     // Рука игрока
+    double equity; // Вероятность забрать лавэ у соперника (пока не реализовано)
     int wins;
     int ties;
     int losses;
-}Player;
+} Player;
 
 //Игровое поле//
 typedef struct {
@@ -55,13 +55,15 @@ typedef struct {
 	int num_cards; //Количество карт на борде
 }Board;
 
-//Структура для представления игры//
+// Структура для представления игры с несколькими игроками
 typedef struct {
-	Player player1;   // Первый игрок
-	Player player2;   // Второй игрок
-	Board board;      // Игровое поле
-	char phase[10];   // Фаза игры (например префлоп флоп терн ривер)
+    Player players[12]; // Массив игроков (до 12)
+    int num_players;    // Количество игроков в игре
+    int current_players;
+    Board board;        // Игровое поле
+    char phase[10];     // Фаза игры (например, префлоп, флоп, терн, ривер)
 } Game;
+
 
 // Покерные комбинации
 typedef enum {
@@ -86,6 +88,7 @@ typedef struct {
 
 
 //=========PROTOTYPE_FUNCTIONS=========//
+void initialize_game(Game *game, int num_players);
 
 // Print Menu Functions
 void print_mainMenu(int* choice);
@@ -103,7 +106,7 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
 void init_card(Card* card, Suit suit, Rank rank);
 void init_randomCard(Card* card);
 void init_hand(Hand* hand, Card card1, Card card2);
-void init_player(Player* player, Hand hand);
+void init_player(Player* players, Hand hand);
 void init_board(Board* board);
 void init_game(Game* game, Player player1, Player player2, Board board, const char* phase);
 
@@ -113,8 +116,10 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit);
 // Utility Functions
 const char* get_rank_name(Rank rank);
 const char* get_suit_name(Suit suit);
-void input_player_cards(Player* player, bool used_cards[15][5]);
-void clear_player_cards(Player* player, bool used_cards[15][5], int current_player);
+void input_players_cards(Player players[], int current_players, bool used_cards[15][5], int choice_player);
+void deal_random_cards(Player players[], int current_players, bool used_cards[15][5], int choice_player);
+void clear_player_cards(Player* players, int current_players, bool used_cards[15][5], int choice_player, bool mute_mode);
+void clear_all_players_cards(Player* players, int current_players, bool used_cards[15][5], bool mute_mode);
 
 // Useful Functions
 double scanf_secure(const char* type);          // Функция для безопасного ввода различных типов данных
@@ -133,7 +138,7 @@ void input_board_cards(Game* game, bool used_cards[15][5], int start_index, int 
 // Deck Functions
 void shuffle_deck(Card* deck, int size);
 void create_deck(Card* deck);
-void deal_random_cards(Player* player1, Player* player2, short current_player, bool used_cards[15][5]);
+
 
 // Game Logic Functions
 PokerCombination determine_hand(Hand hand, Board board);
@@ -143,7 +148,7 @@ void display_board_cards(const Board* board);
 void randomize_board_cards(Game* game, bool used_cards[15][5], int start_index, int num_cards);
 
 // Прототип функции, если она определена в другом месте или файле
-void calculate_probabilities(Game* game, Player* player1, Player* player2, Board* board, bool used_cards[15][5], int choice_numSimulations, bool* test_mode);
+void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numSimulations, bool* test_mode);
 void print_probabilityMenu(Game* game, bool used_cards[15][5]);
 
 //============MAIN_FUNCTION============//
@@ -167,6 +172,40 @@ int main(){
 }
 
 //======IMPLENTATION_OF_FUNCTIONS======//
+
+// Инициализация игры для калькулятора с до 12 игроками
+void initialize_game(Game* game, int num_players) {
+    // Проверяем, что количество игроков в пределах допустимого
+    if (num_players > 12) {
+        num_players = 12; // Ограничение на 12 игроков
+    }
+
+    // Инициализируем игроков
+    for (int i = 0; i < num_players; i++) {
+        Card card1 = { NONE_SUIT, NONE_RANK };
+        Card card2 = { NONE_SUIT, NONE_RANK };
+        Hand hand = { card1, card2 };
+        game->players[i].hand = hand;
+        game->players[i].equity = 0.0;
+        game->players[i].wins = 0;
+        game->players[i].ties = 0;
+        game->players[i].losses = 0;
+    }
+
+    // Инициализируем игровое поле
+    for (int i = 0; i < 5; i++) {
+        game->board.cards[i].suit = NONE_SUIT;
+        game->board.cards[i].rank = NONE_RANK;
+    }
+    game->board.num_cards = 0;
+
+    // Фаза игры
+    strcpy(game->phase, "preflop");
+
+    // Устанавливаем количество игроков
+    game->num_players = num_players;
+}
+
 
 //Начальное меню//
 void print_mainMenu(int* choice) {
@@ -220,7 +259,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: Stable\n");
-        printf("Version program: 1.9\n");
+        printf("Version program: 2.0\n");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;
@@ -234,19 +273,15 @@ void handle_mainMenu_choice(int choice) {
 //Меню калькулятора вероятностей//
 void print_calculatorMenu() {
     srand(time(NULL));
+    
+    
+    Game game;
+    initialize_game(&game, 12);
 
-    /// Инициализация игры для калькултора ///
-    Card card1 = { NONE_SUIT, NONE_RANK }; 
-    Card card2 = { NONE_SUIT, NONE_RANK };
-    Hand hand1 = { card1, card2 };
-    Hand hand2 = { card1, card2 }; 
-    Player player1 = { hand1 }; 
-    Player player2 = { hand2 };
-    Board board = { NONE_SUIT }; 
-    Game game = { player1, player2, board }; 
+
     strcpy(game.phase, "preflop");
   
-
+    game.current_players = 2;
     int choice = -1;
     bool edit_mode = false;
     int edit_current_player = 0;
@@ -260,26 +295,18 @@ void print_calculatorMenu() {
         printf("             Текущая информация                 \n");
         printf("================================================\n");
 
-        //были ли карты введены для 1-го игрока?
-        if (game.player1.hand.card1.rank != NONE_RANK && game.player1.hand.card2.rank != NONE_RANK) {
-            printf("Карты игрока 1: %s %s и %s %s\n", get_rank_name(game.player1.hand.card1.rank),
-                get_suit_name(game.player1.hand.card1.suit),
-                get_rank_name(game.player1.hand.card2.rank),
-                get_suit_name(game.player1.hand.card2.suit));
-        }
-        else {
-            printf("Карты игрока 1: не заданы\n");
-        }
-
-        //были ли карты введены для 2-го игрока?
-        if (game.player2.hand.card1.rank != NONE_RANK && game.player2.hand.card2.rank != NONE_RANK) {
-            printf("Карты игрока 2: %s %s и %s %s\n", get_rank_name(game.player2.hand.card1.rank),
-                get_suit_name(game.player2.hand.card1.suit),
-                get_rank_name(game.player2.hand.card2.rank),
-                get_suit_name(game.player2.hand.card2.suit));
-        }
-        else {
-            printf("Карты игрока 2: не заданы\n");
+        for (int i = 0; i < game.current_players; i++) {
+            // Проверяем, были ли введены карты для текущего игрока
+            if (game.players[i].hand.card1.rank != NONE_RANK && game.players[i].hand.card2.rank != NONE_RANK) {
+                printf("Карты игрока %d: %s %s и %s %s\n", i + 1,
+                    get_rank_name(game.players[i].hand.card1.rank),
+                    get_suit_name(game.players[i].hand.card1.suit),
+                    get_rank_name(game.players[i].hand.card2.rank),
+                    get_suit_name(game.players[i].hand.card2.suit));
+            }
+            else {
+                printf("Карты игрока %d: не заданы\n", i + 1);
+            }
         }
   
         if (strcmp(game.phase, "preflop") == 0) {
@@ -298,7 +325,7 @@ void print_calculatorMenu() {
         printf("================================================\n");
         printf("           Функционал калькулятора              \n");
         printf("================================================\n");
-        printf("1. Редактор карт игроков\n");
+        printf("1. Редактор игроков\n");
         printf("2. Редактор стола и стадий игры\n");
         printf("3. Редактор вычисления вероятностей\n");
         printf("4. Проанализировать комбинациии игроков\n");
@@ -318,16 +345,15 @@ void print_calculatorMenu() {
 void handle_calculatorMenu_choice(int choice, Game* game, bool* exit) {
 
     //Инициализация результата вычисления комбинаций //
-    PokerCombination result_player1;
-    PokerCombination result_player2;
+    PokerCombination* result_player = (PokerCombination*)malloc(game->num_players * sizeof(PokerCombination));
 
     //массив для отслеживания занятых карт //
     bool used_cards[15][5] = { false };
   
-    used_cards[game->player1.hand.card1.rank][game->player1.hand.card1.suit] = true;
-    used_cards[game->player1.hand.card2.rank][game->player1.hand.card2.suit] = true;
-    used_cards[game->player2.hand.card1.rank][game->player2.hand.card1.suit] = true;
-    used_cards[game->player2.hand.card2.rank][game->player2.hand.card2.suit] = true;
+    used_cards[game->players[0].hand.card1.rank][game->players[0].hand.card1.suit] = true;
+    used_cards[game->players[0].hand.card2.rank][game->players[0].hand.card2.suit] = true;
+    used_cards[game->players[1].hand.card1.rank][game->players[1].hand.card1.suit] = true;
+    used_cards[game->players[1].hand.card2.rank][game->players[1].hand.card2.suit] = true;
 
     //Помечаем карты на доске как занятые //
     for (int i = 0; i < game->board.num_cards; i++) {
@@ -373,52 +399,36 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit) {
         break;
 
     case 2:
-        
-        if (game->player1.hand.card1.rank == NONE_RANK || game->player2.hand.card1.rank == NONE_RANK) {
-            printf("У игроков должны быть заданы карты\n");
-            press_any_key_to_continue();
-            clearConsole();
-        }
-        else {
-            clearConsole();
-            print_editBoardMenu(game, used_cards);
-        }
+        clearConsole();
+        print_editBoardMenu(game, used_cards);
         break;
     case 3:
-        
-       
-       clearConsole();
-       print_probabilityMenu(game, used_cards);
-        
-       
+        clearConsole();
+        print_probabilityMenu(game, used_cards);
         break;
 
     case 4:
-        if (game->player1.hand.card1.rank != NONE_RANK && game->player1.hand.card2.rank != NONE_RANK) {
-            printf("----------------------------\n");
-            printf("        Первый игрок        \n");
-            printf("----------------------------\n");
-            result_player1 = determine_hand(game->player1.hand, game->board);
-            print_hand(result_player1);
-          
-        }
-        else {
-            printf("Карты 1-го игрока не заданы, поэтому у него не может быть комбинации!\n");
+        for (int i = 0; i < game->current_players; i++)
+        {
+            if (game->players[0].hand.card1.rank != NONE_RANK && game->players[0].hand.card2.rank != NONE_RANK) {
+
+
+
+                printf("----------------------------\n");
+                printf("          %d игрок          \n", i + 1);
+                printf("----------------------------\n");
+                result_player[i] = determine_hand(game->players[i].hand, game->board);
+                print_hand(result_player[i]);
+
+
+
+            }
+            else {
+                printf("Карты %-го игрока не заданы, поэтому у него не может быть комбинации!\n", i+1);
+            }
         }
 
-        if (game->player2.hand.card1.rank != NONE_RANK && game->player2.hand.card2.rank != NONE_RANK) {
-            printf("----------------------------\n");
-            printf("        Второй игрок       \n");
-            printf("----------------------------\n");
-            result_player2 = determine_hand(game->player2.hand, game->board);
-            print_hand(result_player2);
-            printf("----------------------------\n");
-    
-        
-        }
-        else {
-            printf("Карты 2-го игрока не заданы, поэтому у него не может быть комбинации!\n");
-        }
+       
         press_any_key_to_continue();
         clearConsole();
         break;
@@ -442,28 +452,18 @@ void print_probabilityMenu(Game* game, bool used_cards[15][5]) {
         printf("             Текущая информация                 \n");
         printf("================================================\n");
 
-        // Карты игрока 1
-        if (game->player1.hand.card1.rank != NONE_RANK && game->player1.hand.card2.rank != NONE_RANK) {
-            printf("Карты игрока 1: %s %s и %s %s\n",
-                get_rank_name(game->player1.hand.card1.rank),
-                get_suit_name(game->player1.hand.card1.suit),
-                get_rank_name(game->player1.hand.card2.rank),
-                get_suit_name(game->player1.hand.card2.suit));
-        }
-        else {
-            printf("Карты игрока 1: не заданы\n");
-        }
-
-        // Карты игрока 2
-        if (game->player2.hand.card1.rank != NONE_RANK && game->player2.hand.card2.rank != NONE_RANK) {
-            printf("Карты игрока 2: %s %s и %s %s\n",
-                get_rank_name(game->player2.hand.card1.rank),
-                get_suit_name(game->player2.hand.card1.suit),
-                get_rank_name(game->player2.hand.card2.rank),
-                get_suit_name(game->player2.hand.card2.suit));
-        }
-        else {
-            printf("Карты игрока 2: не заданы\n");
+        for (int i = 0; i < game->current_players; i++) {
+            // Проверяем, были ли введены карты для текущего игрока
+            if (game->players[i].hand.card1.rank != NONE_RANK && game->players[i].hand.card2.rank != NONE_RANK) {
+                printf("Карты игрока %d: %s %s и %s %s\n", i + 1,
+                    get_rank_name(game->players[i].hand.card1.rank),
+                    get_suit_name(game->players[i].hand.card1.suit),
+                    get_rank_name(game->players[i].hand.card2.rank),
+                    get_suit_name(game->players[i].hand.card2.suit));
+            }
+            else {
+                printf("Карты игрока %d: не заданы\n", i + 1);
+            }
         }
 
         // Карты на столе
@@ -505,7 +505,7 @@ void print_probabilityMenu(Game* game, bool used_cards[15][5]) {
 
 void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used_cards[15][5], int *num_simulations, bool* test_mode) {
     char str_choice[4];
-
+    int players_with_cards = 0; // Счётчик игроков с картами
     switch (choice) {
     case 0:
         *exit = true; // Изменяем значение через указатель
@@ -513,8 +513,23 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
         break;
 
     case 1:
-        if (game->player1.hand.card1.rank == NONE_RANK || game->player2.hand.card1.rank == NONE_RANK) {
-            printf("У игроков должны быть заданы карты, для вычисления вероятности!\n");
+        
+
+        // Цикл по всем игрокам
+        for (int i = 0; i < game->current_players; i++) {
+            // Проверяем, есть ли карты у игрока
+            if (game->players[i].hand.card1.rank != NONE_RANK && game->players[i].hand.card2.rank != NONE_RANK) {
+                players_with_cards++; // Увеличиваем счётчик
+            }
+            // Если хотя бы у двух игроков есть карты, прекращаем проверку
+            if (players_with_cards >= 2) {
+                break;
+            }
+        }
+
+        // Проверяем результат
+        if (players_with_cards < 2) {
+            printf("У хотя бы двух игроков должны быть заданы карты, для вычисления вероятности!\n");
             press_any_key_to_continue();
             clearConsole();
         }
@@ -525,13 +540,13 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
                     printf("Использовать режим отладки с количеством симуляций < 3000 не рекомендуется\nВы уверены?\n");
                 }
                 if (*num_simulations > 10000 && *num_simulations < 50000) {
-                    printf("Оу, это будет долговато, рекомендуется < 3000 симуляций, вы уверены?\n");
+                    printf("Оу, это будет долговато.\nДля режима отладки рекомендуется < 3000 симуляций, вы уверены?\n");
                 }
                 if (*num_simulations > 50000 && *num_simulations < 100000) {
-                    printf("Это может быть очень долго, рекомендуется < 3000 симуляций, вы уверены?\n");
+                    printf("Это может быть очень долго.\nДля режима отладки рекомендуется < 3000 симуляций, вы уверены?\n");
                 }
                 else {
-                    printf("Это будет в высшей степени долго, рекомендуется < 3000 симуляций, вы уверены?\n");
+                    printf("Это будет в высшей степени долго.\nДля режима отладки рекомендуется < 3000 симуляций, вы уверены?\n");
                 }
                 printf("Y/yes - да\n");
                 printf("N/no - нет\n");
@@ -562,7 +577,7 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
             }
             printf("Не нажимайте ничего пока не загрузится результат \n");
             printf("Загрузка...\n");
-            calculate_probabilities(game, &game->player1, &game->player2, &game->board, used_cards, *num_simulations, test_mode); // Передаем количество симуляций
+            calculate_probabilities(game, used_cards, *num_simulations, test_mode); // Передаем количество симуляций
             
             press_any_key_to_continue();
             clearConsole();
@@ -611,37 +626,28 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
 }
 
 
-
-
 void print_editPlayerMenu(Game* game, bool used_cards[15][5]) {
     int choice;
     bool back = false;
+    int choice_player;
 
     while (!back) {
         printf("\n");
         printf("================================================\n");
         printf("             Текущая информация                 \n");
         printf("================================================\n");
-        //были ли карты введены для 1-го игрока?
-        if (game->player1.hand.card1.rank != NONE_RANK && game->player1.hand.card2.rank != NONE_RANK) {
-            printf("Карты игрока 1: %s %s и %s %s\n", get_rank_name(game->player1.hand.card1.rank),
-                get_suit_name(game->player1.hand.card1.suit),
-                get_rank_name(game->player1.hand.card2.rank),
-                get_suit_name(game->player1.hand.card2.suit));
-        }
-        else {
-            printf("Карты игрока 1: не заданы\n");
-        }
-
-        //были ли карты введены для 2-го игрока?
-        if (game->player2.hand.card1.rank != NONE_RANK && game->player2.hand.card2.rank != NONE_RANK) {
-            printf("Карты игрока 2: %s %s и %s %s\n", get_rank_name(game->player2.hand.card1.rank),
-                get_suit_name(game->player2.hand.card1.suit),
-                get_rank_name(game->player2.hand.card2.rank),
-                get_suit_name(game->player2.hand.card2.suit));
-        }
-        else {
-            printf("Карты игрока 2: не заданы\n");
+        for (int i = 0; i < game->current_players; i++) {
+            // Проверяем, были ли введены карты для текущего игрока
+            if (game->players[i].hand.card1.rank != NONE_RANK && game->players[i].hand.card2.rank != NONE_RANK) {
+                printf("Карты игрока %d: %s %s и %s %s\n", i + 1,
+                    get_rank_name(game->players[i].hand.card1.rank),
+                    get_suit_name(game->players[i].hand.card1.suit),
+                    get_rank_name(game->players[i].hand.card2.rank),
+                    get_suit_name(game->players[i].hand.card2.suit));
+            }
+            else {
+                printf("Карты игрока %d: не заданы\n", i + 1);
+            }
         }
         
         if (strcmp(game->phase, "preflop") == 0) {
@@ -655,14 +661,13 @@ void print_editPlayerMenu(Game* game, bool used_cards[15][5]) {
         printf("Текущяя стадия игры (улица): %s\n", game->phase);
 
         printf("================================================\n");
-        printf("            Редактор карт игроков               \n");
+        printf("               Редактор игроков                 \n");
         printf("================================================\n");
-        printf("1. Добавить/Изменить карты 1-му игроку\n");
-        printf("2. Добавить/Изменить карты 2-му игроку\n");
-        printf("3. Добавить случайные карты 1-му игроку\n");
-        printf("4. Добавить случайные карты 2-му игроку\n");
-        printf("5. Очистить карты 1-му игроку\n");
-        printf("6. Очистить карты 2-му игроку\n");
+        printf("1. Добавить/изменить карты игроку\n");
+        printf("2. Добавить/изменить случайные карты игроку\n");
+        printf("3. Очистить карты игроку\n");
+        printf("4. Очистить всех игроков\n");
+        printf("5. Задать количество игроков\n");
         printf("-----------------------------------------------\n");
         printf("0. Назад\n");
         printf("================================================\n");
@@ -676,27 +681,91 @@ void print_editPlayerMenu(Game* game, bool used_cards[15][5]) {
             clearConsole();
             break;
         case 1:
-            input_player_cards(&game->player1, used_cards);
+            printf("Введите номер игрока или 0 для отмены: ");
+            choice_player = scanf_secure("int");
+            if (choice_player == 0) {
+                printf("Отмена операции.\n");
+                press_any_key_to_continue();
+                clearConsole();
+                break;
+            }
+            input_players_cards(game->players, game->current_players, used_cards, choice_player);
             clearConsole();
             break;
         case 2:
-            input_player_cards(&game->player2, used_cards);
+            printf("Введите номер игрока или 0 для отмены: ");
+            choice_player = scanf_secure("int");
+            if (choice_player == 0) {
+                printf("Отмена операции.\n");
+                press_any_key_to_continue();
+                clearConsole();
+                break;
+            }
+            deal_random_cards(game->players, game->current_players, used_cards, choice_player);
+            printf("Рука игрока %d сгенерирована случайно!\n", choice_player);
+            press_any_key_to_continue();
             clearConsole();
             break;
         case 3:
-            deal_random_cards(&game->player1, &game->player2, 1, used_cards);
-            clearConsole();
+            int choice_player;
+            printf("Введите номер игрока или 0 для отмены: ");
+            choice_player = scanf_secure("int");
+            if (choice_player == 0) {
+                printf("Отмена операции.\n");
+                press_any_key_to_continue();
+                clearConsole();
+                break;
+            }
+            else {
+                clear_player_cards(game->players, game->current_players, used_cards, choice_player, false);
+                printf("Рука игрока %d успешно очищена!\n", choice_player);
+                press_any_key_to_continue();
+                clearConsole();
+            }
             break;
+
         case 4:
-            deal_random_cards(&game->player1, &game->player2, 2, used_cards);
+            clear_all_players_cards(game->players, game->current_players, used_cards, false);
             clearConsole();
             break;
+
         case 5:
-            clear_player_cards(&game->player1, used_cards, 1);
-            clearConsole();
-            break;
-        case 6:
-            clear_player_cards(&game->player2, used_cards, 2);
+            printf("Введите количество игроков (2-%d) или 0 для отмены: ", game->num_players);
+            choice_player = scanf_secure("int");
+
+            if (choice_player == 0) {
+                printf("Отмена операции.\n");
+                press_any_key_to_continue();
+                clearConsole();
+                break;
+            }
+
+            if (choice_player == game->current_players) {
+                printf("У вас столько же игроков!\n");
+                press_any_key_to_continue();
+                clearConsole();
+                break;
+            }
+
+            if (choice_player < 2 || choice_player > game->num_players) {
+                printf("Вы ввели число вне диапазона!\n");
+                press_any_key_to_continue();
+                clearConsole();
+                break;
+            }
+
+            // Если новое количество игроков меньше текущего
+            if (choice_player < game->current_players) {
+                // Очищаем карты всех лишних игроков
+                for (int i = choice_player; i < game->current_players; i++) {
+                    clear_player_cards(game->players, game->current_players, used_cards, i + 1, true);
+                }
+            }
+
+            // Устанавливаем новое количество игроков
+            game->current_players = choice_player;
+            printf("Вы задали %d игроков для калькулятора.\n", choice_player);
+            press_any_key_to_continue();
             clearConsole();
             break;
 
@@ -719,27 +788,18 @@ void print_editBoardMenu(Game* game, bool used_cards[15][5]) {
         printf("             Текущая информация                 \n");
         printf("================================================\n");
         // были ли карты введены для 1-го игрока?
-        if (game->player1.hand.card1.rank != NONE_RANK && game->player1.hand.card2.rank != NONE_RANK) {
-            printf("Карты игрока 1: %s %s и %s %s\n",
-                get_rank_name(game->player1.hand.card1.rank),
-                get_suit_name(game->player1.hand.card1.suit),
-                get_rank_name(game->player1.hand.card2.rank),
-                get_suit_name(game->player1.hand.card2.suit));
-        }
-        else {
-            printf("Карты игрока 1: не заданы\n");
-        }
-
-        // были ли карты введены для 2-го игрока?
-        if (game->player2.hand.card1.rank != NONE_RANK && game->player2.hand.card2.rank != NONE_RANK) {
-            printf("Карты игрока 2: %s %s и %s %s\n",
-                get_rank_name(game->player2.hand.card1.rank),
-                get_suit_name(game->player2.hand.card1.suit),
-                get_rank_name(game->player2.hand.card2.rank),
-                get_suit_name(game->player2.hand.card2.suit));
-        }
-        else {
-            printf("Карты игрока 2: не заданы\n");
+        for (int i = 0; i < game->current_players; i++) {
+            // Проверяем, были ли введены карты для текущего игрока
+            if (game->players[i].hand.card1.rank != NONE_RANK && game->players[i].hand.card2.rank != NONE_RANK) {
+                printf("Карты игрока %d: %s %s и %s %s\n", i + 1,
+                    get_rank_name(game->players[i].hand.card1.rank),
+                    get_suit_name(game->players[i].hand.card1.suit),
+                    get_rank_name(game->players[i].hand.card2.rank),
+                    get_suit_name(game->players[i].hand.card2.suit));
+            }
+            else {
+                printf("Карты игрока %d: не заданы\n", i + 1);
+            }
         }
 
         if (strcmp(game->phase, "preflop") == 0) {
@@ -923,9 +983,9 @@ void init_hand(Hand* hand, Card card1, Card card2) {
 }
 
 //Инициализация игрока//
-void init_player(Player* player, Hand hand) {
-	player->hand = hand;
-	player->equity = 0.0;  // Начальная вероятность выигрыша
+void init_player(Player* players, Hand hand) {
+	players->hand = hand;
+	players->equity = 0.0;  // Начальная вероятность выигрыша
 }
 
 //Инициализация игрового поля//
@@ -935,8 +995,8 @@ void init_board(Board* board) {
 
 //Инициализация игры//
 void init_game(Game* game, Player player1, Player player2, Board board, const char* phase) {
-	game->player1 = player1;
-	game->player2 = player2;
+	game->players[0] = player1;
+	game->players[1] = player2;
 	game->board = board;
 	snprintf(game->phase, sizeof(game->phase), "%s", phase);  
 }
@@ -1042,112 +1102,164 @@ void print_hand(PokerCombination hand) {
     }
 }
 
-void clear_player_cards(Player* player, bool used_cards[15][5], int current_player){
+void clear_player_cards(Player* players, int current_players, bool used_cards[15][5], int choice_player, bool mute_mode){
 
-    if (player->hand.card1.rank == NONE_RANK || player->hand.card2.rank == NONE_RANK) {
-        printf("Рука игрока %d не задана, поэтому она не может быть очищена!\n", current_player);
-        press_any_key_to_continue();
-        clearConsole();
-
+    if (mute_mode == false) {
+        if (players[choice_player - 1].hand.card1.rank == NONE_RANK || players[choice_player - 1].hand.card2.rank == NONE_RANK) {
+            printf("Рука игрока %d не задана, поэтому она не может быть очищена!\n", choice_player);
+            return;
+        }
     }
 
-    used_cards[player->hand.card1.rank][player->hand.card1.suit] = false;
-    used_cards[player->hand.card2.rank][player->hand.card2.suit] = false;
 
-    player->hand.card1.rank = NONE_RANK;
-    player->hand.card1.suit = NONE_SUIT;
 
-    player->hand.card2.rank = NONE_RANK;
-    player->hand.card2.suit = NONE_SUIT;
+    used_cards[players->hand.card1.rank][players->hand.card1.suit] = false;
+    used_cards[players->hand.card2.rank][players->hand.card2.suit] = false;
 
-    printf("Рука игрока %d успешно очищена!\n", current_player);
+    players[choice_player - 1].hand.card1.rank = NONE_RANK;
+    players[choice_player - 1].hand.card1.suit = NONE_SUIT;
 
+    players[choice_player - 1].hand.card2.rank = NONE_RANK;
+    players[choice_player - 1].hand.card2.suit = NONE_SUIT;
+
+}
+
+//mode = false - deffault; mode = true - mute
+void clear_all_players_cards(Player* players, int current_players, bool used_cards[15][5], bool mute_mode) {
+    
+    for (int i = 0; i < current_players; i++) {
+        if (players[i].hand.card1.rank != NONE_RANK || players[i].hand.card2.rank != NONE_RANK) {
+            // Сбрасываем использование карт в массиве used_cards
+            used_cards[players[i].hand.card1.rank][players[i].hand.card1.suit] = false;
+            used_cards[players[i].hand.card2.rank][players[i].hand.card2.suit] = false;
+
+            // Очищаем карты игрока
+            players[i].hand.card1.rank = NONE_RANK;
+            players[i].hand.card1.suit = NONE_SUIT;
+
+            players[i].hand.card2.rank = NONE_RANK;
+            players[i].hand.card2.suit = NONE_SUIT;
+
+            if (mute_mode == false) {
+                printf("Рука игрока %d успешно очищена!\n", i + 1);
+            }
+        }
+        else {
+            if (mute_mode == false) {
+                printf("Рука игрока %d не задана, поэтому она не может быть очищена!\n", i + 1);
+            }
+        }
+    }
+    printf("Операция завершена!\n");
+    press_any_key_to_continue();
 }
 
 
 
-
-void input_player_cards(Player* player, bool used_cards[15][5]) {
+void input_players_cards(Player players[], int current_players, bool used_cards[15][5], int choice_player) {
     int rank_choice_card1, suit_choice_card1;
     int rank_choice_card2, suit_choice_card2;
-    // Ввод первой карты
-    do {
-        printf("Введите ранг 1-ой карты (2-14) или 0 для выхода: ");
-        rank_choice_card1 = (int)scanf_secure("int");
-        if (rank_choice_card1 == 0) {
 
-            return;
-        }
-        if (rank_choice_card1 < 2 || rank_choice_card1 > 14) {
-            printf("Неверный ранг карты! Попробуйте снова.\n");
-            continue;
-        }
 
-        printf("Введите масть 1-ой карты (1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики) или 0 для выхода: ");
-        suit_choice_card1 = (int)scanf_secure("int");
-        if (suit_choice_card1 == 0) {
-            return;
-        }
-        if (suit_choice_card1 < 1 || suit_choice_card1 > 4) {
-            printf("Неверная масть карты! Попробуйте снова.\n");
-            continue;
-        }
+    if (choice_player < 0 || choice_player > current_players) {
+        printf("Игрока под таким номером не существует!\n");
+        press_any_key_to_continue();
+        clearConsole();
+        return;
+    }
+    else {
+        printf("------------------------------------------------\n");
+        printf("          Ввод карт для игрока %d\n", choice_player);
+        printf("------------------------------------------------\n");
+        // Ввод первой карты
+        printf("11 - Валет, 12 - Дама, 13 - Король, 14 - Туз\n");
+        printf("1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики\n");
+        printf("------------------------------------------------\n");
+        do {
+     
+            printf("Введите ранг 1-ой карты или 0 для выхода: ");
+            rank_choice_card1 = (int)scanf_secure("int");
+            if (rank_choice_card1 == 0) {
+                return;
+            }
+            if (rank_choice_card1 < 2 || rank_choice_card1 > 14) {
+                printf("Неверный ранг карты! Попробуйте снова.\n");
+                continue;
+            }
 
-        // Чекаем на уникальность карты
-        if (used_cards[rank_choice_card1][suit_choice_card1]) {
-            printf("Эта карта уже используется! Попробуйте другую карту.\n");
-        }
-        else {
-            // Сохранение карт
-            player->hand.card1.rank = (Rank)rank_choice_card1;
-            player->hand.card1.suit = (Suit)suit_choice_card1;
-            used_cards[rank_choice_card1][suit_choice_card1] = true;
+            printf("Введите масть 1-ой карты или 0 для выхода: ");
+            suit_choice_card1 = (int)scanf_secure("int");
+            if (suit_choice_card1 == 0) {
+                return;
+            }
+            if (suit_choice_card1 < 1 || suit_choice_card1 > 4) {
+                printf("Неверная масть карты! Попробуйте снова.\n");
+                continue;
+            }
 
-            break;
-        }
-    } while (1);
+            // Проверка на уникальность карты
+            if (used_cards[rank_choice_card1][suit_choice_card1]) {
+                printf("Эта карта уже используется! Попробуйте другую карту.\n");
+            }
+            else {
+                // Сохранение карты для игрока
+                used_cards[players[choice_player - 1].hand.card1.rank][players[choice_player - 1].hand.card1.suit] = false;
+                players[choice_player - 1].hand.card1.rank = (Rank)rank_choice_card1;
+                players[choice_player - 1].hand.card1.suit = (Suit)suit_choice_card1;
+                used_cards[rank_choice_card1][suit_choice_card1] = true;
+                break;
+            }
+        } while (1);
+        printf("\n");
+        // Ввод второй карты
+    
+        do { 
+            printf("Введите ранг 2-ой карты или 0 для выхода: ");
+            rank_choice_card2 = (int)scanf_secure("int");
+            if (rank_choice_card2 == 0) {
+                used_cards[rank_choice_card1][suit_choice_card1] = false; // Отменяем первую карту
+                players[choice_player - 1].hand.card1.rank = NONE_RANK;
+                players[choice_player - 1].hand.card1.suit = NONE_SUIT;
+                return;
+            }
+            if (rank_choice_card2 < 2 || rank_choice_card2 > 14) {
+                printf("Неверный ранг карты! Попробуйте снова.\n");
+                continue;
+            }
 
-    // Ввод второй карты
-    do {
-        printf("Введите ранг 2-ой карты (2-14) или 0 для выхода: ");
-        rank_choice_card2 = (int)scanf_secure("int");
-        if (rank_choice_card2 == 0) {
-            
-            return;
-        }
-        if (rank_choice_card2 < 2 || rank_choice_card2 > 14) {
-            printf("Неверный ранг карты! Попробуйте снова.\n");
-            continue;
-        }
+         
+            printf("Введите масть 2-ой карты или 0 для выхода: ");
+            suit_choice_card2 = (int)scanf_secure("int");
+            if (suit_choice_card2 == 0) {
+                used_cards[rank_choice_card1][suit_choice_card1] = false; // Отменяем первую карту
+                players[choice_player - 1].hand.card1.rank = NONE_RANK;
+                players[choice_player - 1].hand.card1.suit = NONE_SUIT;
+                return;
+            }
+            if (suit_choice_card2 < 1 || suit_choice_card2 > 4) {
+                printf("Неверная масть карты! Попробуйте снова.\n");
+                continue;
+            }
 
-        printf("Введите масть 2-ой карты (1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики) или 0 для выхода: ");
-        suit_choice_card2 = (int)scanf_secure("int");
-        if (suit_choice_card2 == 0) {
-            used_cards[rank_choice_card1][suit_choice_card1] = false;
-            return;
-        }
-        if (suit_choice_card2 < 1 || suit_choice_card2 > 4) {
-            printf("Неверная масть карты! Попробуйте снова.\n");
-            continue;
-        }
-
-        // Проверка на уникальность карты и совпадение с первой картой
-        if (used_cards[rank_choice_card2][suit_choice_card2]) {
-            printf("Эта карта уже используется! Попробуйте другую карту.\n");
-        }
-        else if (player->hand.card1.rank == rank_choice_card2 && player->hand.card1.suit == suit_choice_card2) {
-            printf("Эта карта совпадает с первой картой! Выберите другую.\n");
-        }
-        else {
-            // Сохранение карт  
-
-            player->hand.card2.rank = (Rank)rank_choice_card2;
-            player->hand.card2.suit = (Suit)suit_choice_card2;
-            used_cards[rank_choice_card2][suit_choice_card2] = true;
-            break;
-        }
-    } while (1);
+            // Проверка на уникальность карты и совпадение с первой картой
+            if (used_cards[rank_choice_card2][suit_choice_card2]) {
+                printf("Эта карта уже используется! Попробуйте другую карту.\n");
+            }
+            else if (players[choice_player - 1].hand.card1.rank == rank_choice_card2 && players[choice_player - 1].hand.card1.suit == suit_choice_card2) {
+                printf("Эта карта совпадает с первой картой! Выберите другую.\n");
+            }
+            else {
+                // Сохранение второй карты для игрока
+                used_cards[players[choice_player - 1].hand.card2.rank][players[choice_player - 1].hand.card2.suit] = false;
+                players[choice_player - 1].hand.card2.rank = (Rank)rank_choice_card2;
+                players[choice_player - 1].hand.card2.suit = (Suit)suit_choice_card2;
+                used_cards[rank_choice_card2][suit_choice_card2] = true;
+                break;
+            }
+        } while (1);
+    }
 }
+
 
 
 
@@ -1275,7 +1387,15 @@ void create_deck(Card* deck) {
 }
 
 // Функция раздачи случайных карт двум игрокам
-void deal_random_cards(Player* player1, Player* player2, short current_player, bool used_cards[15][5]) {
+void deal_random_cards(Player players[], int current_players, bool used_cards[15][5], int choice_player) {
+    
+    if (choice_player < 0 || choice_player > current_players) {
+        printf("Игрока под таким номером не существует!\n");
+        press_any_key_to_continue();
+        clearConsole();
+        return;
+    }
+    
     // Создаем деку
     Card full_deck[52];
     create_deck(full_deck);
@@ -1293,37 +1413,16 @@ void deal_random_cards(Player* player1, Player* player2, short current_player, b
     shuffle_deck(available_deck, available_count);
 
     // Дилер раздает карты игрокам
-    if (current_player == 1) {
-        used_cards[player1->hand.card1.rank][player1->hand.card1.suit] = false;
-        used_cards[player1->hand.card2.rank][player1->hand.card2.suit] = false;
-        player1->hand.card1 = available_deck[0];
-        player1->hand.card2 = available_deck[1];
-        used_cards[player1->hand.card1.rank][player1->hand.card1.suit] = true;
-        used_cards[player1->hand.card2.rank][player1->hand.card2.suit] = true;
-    }
-    else if (current_player == 2) {
-        used_cards[player2->hand.card1.rank][player2->hand.card1.suit] = false;
-        used_cards[player2->hand.card2.rank][player2->hand.card2.suit] = false;
-        player2->hand.card1 = available_deck[0];
-        player2->hand.card2 = available_deck[1];
-        used_cards[player2->hand.card1.rank][player2->hand.card1.suit] = true;
-        used_cards[player2->hand.card2.rank][player2->hand.card2.suit] = true;
+   
+        used_cards[players[choice_player - 1].hand.card1.rank][players[choice_player - 1].hand.card1.suit] = false;
+        used_cards[players[choice_player - 1].hand.card2.rank][players[choice_player - 1].hand.card2.suit] = false;
+        players[choice_player - 1].hand.card1 = available_deck[0];
+        players[choice_player - 1].hand.card2 = available_deck[1];
+        used_cards[players[choice_player - 1].hand.card1.rank][players[choice_player - 1].hand.card1.suit] = true;
+        used_cards[players[choice_player - 1].hand.card2.rank][players[choice_player - 1].hand.card2.suit] = true;
+    
+    
 
-    }
-    else if (current_player == 12) {
-        used_cards[player1->hand.card1.rank][player1->hand.card1.suit] = false;
-        used_cards[player1->hand.card2.rank][player1->hand.card2.suit] = false;
-        used_cards[player2->hand.card1.rank][player2->hand.card1.suit] = false;
-        used_cards[player2->hand.card2.rank][player2->hand.card2.suit] = false;
-        player1->hand.card1 = available_deck[0];
-        player1->hand.card2 = available_deck[1];
-        player2->hand.card1 = available_deck[2];
-        player2->hand.card2 = available_deck[3];
-        used_cards[player1->hand.card1.rank][player1->hand.card1.suit] = true;
-        used_cards[player1->hand.card2.rank][player1->hand.card2.suit] = true;
-        used_cards[player2->hand.card1.rank][player2->hand.card1.suit] = true;
-        used_cards[player2->hand.card2.rank][player2->hand.card2.suit] = true;
-    }
 }
 
 // Определяем максимальный размер доски
@@ -1616,10 +1715,6 @@ int compare_hands(PokerCombination hand1, PokerCombination hand2) {
     return 0; // Ничья
 }
 
-
-
-
-
 PokerCombination determine_hand(Hand hand, Board board) {
     PokerCombination result;
     result.hand_rank = HIGH_CARD;
@@ -1690,6 +1785,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
         result.hand_rank = FULL_HOUSE;
         result.high_card = static_cast<Rank>(three_of_a_kind); // Старший сет
         result.kicker[0] = static_cast<Rank>((top_pair > 0) ? top_pair : second_three_of_a_kind); // Пара
+
         return result;
     }
 
@@ -1705,10 +1801,10 @@ PokerCombination determine_hand(Hand hand, Board board) {
             }
         }
 
-        // Сортируем карты флеша
         qsort(flush_cards, flush_card_count, sizeof(Rank), [](const void* a, const void* b) {
             return (*(Rank*)b - *(Rank*)a);
             });
+
 
         // Проверка на стрит-флеш
         for (int i = 0; i < flush_card_count - 4; i++) {
@@ -1815,19 +1911,19 @@ PokerCombination determine_hand(Hand hand, Board board) {
 
 
 
-void calculate_probabilities(Game* game, Player* player1, Player* player2, Board* board, bool used_cards[15][5], int choice_numSimulations, bool* test_mode) {
-    player1->wins = 0;
-    player1->ties = 0;
-    player1->losses = 0;
-    player2->wins = 0;
-    player2->ties = 0;
-    player2->losses = 0;
+void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numSimulations, bool* test_mode) {
+    // Инициализируем победы, поражения и ничьи для каждого игрока
+    for (int i = 0; i < game->current_players; i++) {
+        game->players[i].wins = 0;
+        game->players[i].ties = 0;
+        game->players[i].losses = 0;
+    }
 
     for (int i = 0; i < choice_numSimulations; i++) {
         Card deck[52];
         int deck_index = 0;
 
-        // Заполняем колоду, исключая карты, которые уже были использованы (в руках игроков или на борде)
+        // Заполняем колоду, исключая карты, которые уже были использованы
         for (int rank = 2; rank <= 14; rank++) {
             for (int suit = 1; suit <= 4; suit++) {
                 if (!used_cards[rank][suit]) {
@@ -1848,44 +1944,68 @@ void calculate_probabilities(Game* game, Player* player1, Player* player2, Board
 
         // Эмулируем недостающие карты на столе, создавая симулированный борд
         Card simulation_board[5];
-        for (int j = 0; j < board->num_cards; j++) {
-            simulation_board[j] = board->cards[j];  // Копируем уже известные карты
+        for (int j = 0; j < game->board.num_cards; j++) {
+            simulation_board[j] = game->board.cards[j];  // Копируем уже известные карты
         }
 
-        for (int j = board->num_cards; j < 5; j++) {
+        for (int j = game->board.num_cards; j < 5; j++) {
             simulation_board[j] = deck[--deck_index];  // Симулируем оставшиеся карты
         }
 
         // Создаем временный объект типа Board для симулированных карт
         Board simulated_board;
-        simulated_board.num_cards = 5;  // Устанавливаем, что на борде всегда будет 5 карт
+        simulated_board.num_cards = 5;  // Всегда 5 карт
         for (int j = 0; j < 5; j++) {
             simulated_board.cards[j] = simulation_board[j];
         }
 
-        // Оценка комбинаций для каждого игрока на симулированной доске
-        PokerCombination hand1 = determine_hand(player1->hand, simulated_board);  // Используем симулированный борд!
-        PokerCombination hand2 = determine_hand(player2->hand, simulated_board);  // Используем симулированный борд!
+        // Массив для хранения комбинаций всех игроков
+        PokerCombination* player_hands = (PokerCombination*)malloc(game->current_players * sizeof(PokerCombination));
 
-
-
-        // Сравнение комбинаций и увеличение счетчиков
-        int comparison = compare_hands(hand1, hand2);
-        if (comparison == 1) {
-            player1->wins++;
-            player2->losses++;
-        }
-        else if (comparison == -1) {
-            player2->wins++;
-            player1->losses++;
-        }
-        else {
-            player1->ties++;
-            player2->ties++;
+        // Оценка комбинаций для каждого игрока
+        for (int j = 0; j < game->current_players; j++) {
+            player_hands[j] = determine_hand(game->players[j].hand, simulated_board);  // Используем симулированный борд
         }
 
+        // Определение победителя среди всех игроков
+        int best_player = -1;
+        bool tie = false;
+        int tie_count = 0;
+
+        for (int j = 0; j < game->current_players; j++) {
+            if (best_player == -1) {
+                best_player = j;
+            }
+            else {
+                int comparison = compare_hands(player_hands[j], player_hands[best_player]);
+                if (comparison > 0) {
+                    best_player = j;
+                    tie = false;
+                    tie_count = 1; // Сбросим количество участников ничьи
+                }
+                else if (comparison == 0) {
+                    tie = true;
+                    tie_count++;
+                }
+            }
+        }
+
+        // Увеличиваем счётчики побед, поражений и ничьих для каждого игрока
+        for (int j = 0; j < game->current_players; j++) {
+            if (tie && compare_hands(player_hands[j], player_hands[best_player]) == 0) {
+                game->players[j].ties++;
+            }
+            else if (j == best_player) {
+                game->players[j].wins++;
+            }
+            else {
+                game->players[j].losses++;
+            }
+        }
+
+        // В тестовом режиме выводим информацию о симуляции
         if (*test_mode == true) {
-            // Выводим карты на борде и комбинации игроков
+
             printf("Симуляция %d:\n", i + 1);
             printf("Карты на столе: ");
             for (int j = 0; j < 5; j++) {
@@ -1896,45 +2016,33 @@ void calculate_probabilities(Game* game, Player* player1, Player* player2, Board
             }
             printf("\n");
 
-            printf("Игрок 1: комбинация %d, старшая карта: %d\n", hand1.hand_rank, hand1.high_card);
-            printf("Игрок 2: комбинация %d, старшая карта: %d\n", hand2.hand_rank, hand2.high_card);
-
-            // Вывод победителя
-            if (comparison == 1) {
-                printf("Первый игрок победил.\n");
+            for (int j = 0; j < game->current_players; j++) {
+                printf("Игрок %d: комбинация %d, старшая карта: %d\n", j + 1, player_hands[j].hand_rank, player_hands[j].high_card);
             }
-            else if (comparison == -1) {
-                printf("Второй игрок победил.\n");
+
+            if (tie) {
+                printf("Ничья между игроками.\n");
             }
             else {
-                printf("Ничья.\n");
+                printf("Игрок %d победил.\n", best_player + 1);
             }
             printf("\n");
-
-
         }
+
+        // Освобождаем память после использования
+        free(player_hands);
     }
-    
-    // Выводим вероятность победы, поражений и ничьих для каждого игрока
+
+    // Выводим вероятность побед, поражений и ничьих для каждого игрока
     double total_simulations = (double)choice_numSimulations;
 
-    printf("------------------\n   Первый игрок\n------------------\n");
-    printf("Победы: %.2f%%\n", (player1->wins / total_simulations) * 100);
-    printf("Поражения: %.2f%%\n", (player1->losses / total_simulations) * 100);
-    printf("Ничьи: %.2f%%\n", (player1->ties / total_simulations) * 100);
-
-    printf("------------------\n   Второй игрок\n------------------\n");
-    printf("Победы: %.2f%%\n", (player2->wins / total_simulations) * 100);
-    printf("Поражения: %.2f%%\n", (player2->losses / total_simulations) * 100);
-    printf("Ничьи: %.2f%%\n", (player2->ties / total_simulations) * 100);
-    printf("\n");
+    for (int i = 0; i < game->current_players; i++) {
+        printf("------------------\n   Игрок %d\n------------------\n", i + 1);
+        printf("Победы: %.2f%%\n", (game->players[i].wins / total_simulations) * 100);
+        printf("Поражения: %.2f%%\n", (game->players[i].losses / total_simulations) * 100);
+        printf("Ничьи: %.2f%%\n", (game->players[i].ties / total_simulations) * 100);
+    }
 }
-
-
-
-
-
-
 
 // Заполнение колоды карт, исключая карты игроков и борда
 void fillDeck(int deck[], int player1[], int player2[], int board[], int stage) {
