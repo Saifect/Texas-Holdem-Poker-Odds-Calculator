@@ -142,7 +142,7 @@ void create_deck(Card* deck);
 
 // Game Logic Functions
 PokerCombination determine_hand(Hand hand, Board board);
-int compare_hands(PokerCombination hand1, PokerCombination hand2);
+int compare_hands(PokerCombination* hands, int num_players, int* tie_count);
 void print_hand(PokerCombination hand);
 void display_board_cards(const Board* board);
 void randomize_board_cards(Game* game, bool used_cards[15][5], int start_index, int num_cards);
@@ -1653,67 +1653,80 @@ bool is_unique_cards(Card* cards, int count) {
     return true;
 }
 
-int compare_hands(PokerCombination hand1, PokerCombination hand2) {
-    // Сравниваем ранги комбинаций (старшинство комбинаций)
-    if (hand1.hand_rank > hand2.hand_rank) return 1;
-    if (hand1.hand_rank < hand2.hand_rank) return -1;
+int compare_hands(PokerCombination* hands, int num_players, int* tie_count) {
+    int best_player = 0; // Инициализируем индекс первого игрока как лучшего
+    *tie_count = 1; // Изначально ничья только с одним игроком (с самим собой)
 
-    // Если ранги комбинаций равны, сравниваем старшие карты комбинации
-    if (hand1.high_card > hand2.high_card) return 1;
-    if (hand1.high_card < hand2.high_card) return -1;
+    for (int i = 1; i < num_players; i++) {
+        int comparison = 0;
 
-    // Если старшие карты комбинаций равны, сравниваем кикеры
-    switch (hand1.hand_rank) {
-    case STRAIGHT:
-    case STRAIGHT_FLUSH:
-        if (hand1.high_card == hand2.high_card) return 0;
-        break;
-
-    case FOUR_OF_A_KIND:
-    case FULL_HOUSE:
-        if (hand1.kicker[0] > hand2.kicker[0]) return 1;
-        if (hand1.kicker[0] < hand2.kicker[0]) return -1;
-        break;
-
-    case THREE_OF_A_KIND:
-        // У трипса только один кикер
-        for (int i = 0; i < 2; i++) {
-            if (hand1.kicker[i] > hand2.kicker[i]) return 1;
-            if (hand1.kicker[i] < hand2.kicker[i]) return -1;
+        // Сравнение комбинаций
+        if (hands[i].hand_rank > hands[best_player].hand_rank) {
+            comparison = 1;
         }
-        break;
-
-    case ONE_PAIR:
-    case TWO_PAIR:
-        // Для пары и двух пар используются три кикера
-        for (int i = 0; i < 3; i++) {
-            if (hand1.kicker[i] > hand2.kicker[i]) return 1;
-            if (hand1.kicker[i] < hand2.kicker[i]) return -1;
+        else if (hands[i].hand_rank < hands[best_player].hand_rank) {
+            comparison = -1;
         }
-        break;
 
-    case FLUSH:
-        // У флеша все пять карт сравниваются по убыванию
-        for (int i = 0; i < 5; i++) {
-            if (hand1.kicker[i] > hand2.kicker[i]) return 1;
-            if (hand1.kicker[i] < hand2.kicker[i]) return -1;
+        // Если комбинации равны, начинаем сравнивать старшие карты и кикеры
+        if (comparison == 0) {
+            switch (hands[i].hand_rank) {
+            case STRAIGHT:
+            case STRAIGHT_FLUSH:
+                // Сравнение старших карт для стритов
+                comparison = (hands[i].high_card > hands[best_player].high_card) ? 1 : -1;
+                break;
+
+            case FOUR_OF_A_KIND:
+            case FULL_HOUSE:
+                // Сравниваем кикер для "каре" и "фулл-хаус"
+                comparison = (hands[i].kicker[0] > hands[best_player].kicker[0]) ? 1 : -1;
+                break;
+
+            case THREE_OF_A_KIND:
+                // Сравниваем кикеры для "сет"
+                for (int j = 0; j < 2 && comparison == 0; j++) {
+                    comparison = (hands[i].kicker[j] > hands[best_player].kicker[j]) ? 1 : -1;
+                }
+                break;
+
+            case TWO_PAIR:
+            case ONE_PAIR:
+                // Сравниваем кикеры для двух пар и одной пары
+                for (int j = 0; j < 3 && comparison == 0; j++) {
+                    comparison = (hands[i].kicker[j] > hands[best_player].kicker[j]) ? 1 : -1;
+                }
+                break;
+
+            case FLUSH:
+            case HIGH_CARD:
+                // Сравниваем все пять карт для флеша и старшей карты
+                for (int j = 0; j < 5 && comparison == 0; j++) {
+                    comparison = (hands[i].kicker[j] > hands[best_player].kicker[j]) ? 1 : -1;
+                }
+                break;
+
+            default:
+                break;
+            }
         }
-        break;
 
-    case HIGH_CARD:
-        // У старшей карты все пять карт сравниваются
-        for (int i = 0; i < 5; i++) {
-            if (hand1.kicker[i] > hand2.kicker[i]) return 1;
-            if (hand1.kicker[i] < hand2.kicker[i]) return -1;
+        // Если ничья, увеличиваем счетчик
+        if (comparison == 0) {
+            (*tie_count)++;
+            continue; // Переходим к следующему игроку
         }
-        break;
 
-    default:
-        break;
+        // Определение победителя
+        if (comparison > 0) {
+            best_player = i;
+            *tie_count = 1; // Сброс счетчика ничьих, так как найден новый лучший игрок
+        }
     }
 
-    return 0; // Ничья
+    return best_player;
 }
+
 
 PokerCombination determine_hand(Hand hand, Board board) {
     PokerCombination result;
@@ -1908,10 +1921,8 @@ PokerCombination determine_hand(Hand hand, Board board) {
 }
 
 
-
-
-
 void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numSimulations, bool* test_mode) {
+    int tie_count;
     // Инициализируем победы, поражения и ничьи для каждого игрока
     for (int i = 0; i < game->current_players; i++) {
         game->players[i].wins = 0;
@@ -1923,7 +1934,7 @@ void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numS
         Card deck[52];
         int deck_index = 0;
 
-        // Заполняем колоду, исключая карты, которые уже были использованы
+        // Заполняем колоду, исключая использованные карты
         for (int rank = 2; rank <= 14; rank++) {
             for (int suit = 1; suit <= 4; suit++) {
                 if (!used_cards[rank][suit]) {
@@ -1942,19 +1953,18 @@ void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numS
             deck[k] = temp;
         }
 
-        // Эмулируем недостающие карты на столе, создавая симулированный борд
+        // Симулируем недостающие карты на столе
         Card simulation_board[5];
         for (int j = 0; j < game->board.num_cards; j++) {
             simulation_board[j] = game->board.cards[j];  // Копируем уже известные карты
         }
-
         for (int j = game->board.num_cards; j < 5; j++) {
             simulation_board[j] = deck[--deck_index];  // Симулируем оставшиеся карты
         }
 
-        // Создаем временный объект типа Board для симулированных карт
+        // Создаем временный объект для симулированных карт
         Board simulated_board;
-        simulated_board.num_cards = 5;  // Всегда 5 карт
+        simulated_board.num_cards = 5;
         for (int j = 0; j < 5; j++) {
             simulated_board.cards[j] = simulation_board[j];
         }
@@ -1967,32 +1977,13 @@ void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numS
             player_hands[j] = determine_hand(game->players[j].hand, simulated_board);  // Используем симулированный борд
         }
 
-        // Определение победителя среди всех игроков
-        int best_player = -1;
-        bool tie = false;
-        int tie_count = 0;
-
-        for (int j = 0; j < game->current_players; j++) {
-            if (best_player == -1) {
-                best_player = j;
-            }
-            else {
-                int comparison = compare_hands(player_hands[j], player_hands[best_player]);
-                if (comparison > 0) {
-                    best_player = j;
-                    tie = false;
-                    tie_count = 1; // Сбросим количество участников ничьи
-                }
-                else if (comparison == 0) {
-                    tie = true;
-                    tie_count++;
-                }
-            }
-        }
+        // Определение победителя и проверка на ничью
+ 
+        int best_player = compare_hands(player_hands, game->current_players, &tie_count);
 
         // Увеличиваем счётчики побед, поражений и ничьих для каждого игрока
         for (int j = 0; j < game->current_players; j++) {
-            if (tie && compare_hands(player_hands[j], player_hands[best_player]) == 0) {
+            if (tie_count > 1 && compare_hands(&player_hands[j], 1, &tie_count) == 0) {
                 game->players[j].ties++;
             }
             else if (j == best_player) {
@@ -2003,9 +1994,8 @@ void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numS
             }
         }
 
-        // В тестовом режиме выводим информацию о симуляции
+        // Тестовый режим для вывода информации
         if (*test_mode == true) {
-
             printf("Симуляция %d:\n", i + 1);
             printf("Карты на столе: ");
             for (int j = 0; j < 5; j++) {
@@ -2020,7 +2010,7 @@ void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numS
                 printf("Игрок %d: комбинация %d, старшая карта: %d\n", j + 1, player_hands[j].hand_rank, player_hands[j].high_card);
             }
 
-            if (tie) {
+            if (tie_count > 1) {
                 printf("Ничья между игроками.\n");
             }
             else {
