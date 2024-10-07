@@ -106,7 +106,7 @@ void print_calculatorMenu();
 void get_user_choice(int* choice);
 void handle_mainMenu_choice(int choice);
 void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used_cards[15][5], int* num_simulations, Settings_debugging_mode* settings_debugging_mode);
-
+void initialize_used_cards(Game* game, bool used_cards[15][5]);
 // Initialization Functions
 void init_card(Card* card, Suit suit, Rank rank);
 void init_randomCard(Card* card);
@@ -121,7 +121,7 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit);
 // Utility Functions
 const char* get_rank_name(Rank rank);
 const char* get_suit_name(Suit suit);
-void input_players_cards(Player players[], int current_players, bool used_cards[15][5], int choice_player);
+void deal_cards(Player players[], int current_players, bool used_cards[15][5], int choice_player);
 void deal_random_cards(Player players[], int current_players, bool used_cards[15][5], int choice_player);
 void clear_player_cards(Player* players, int current_players, bool used_cards[15][5], int choice_player, bool mute_mode);
 void clear_all_players_cards(Player* players, int current_players, bool used_cards[15][5], bool mute_mode);
@@ -269,7 +269,7 @@ void handle_mainMenu_choice(int choice) {
         break;
     case 4:
         printf("Status: Stable\n");
-        printf("Version program: 2.0\n");
+        printf("Version program: 2.1\n");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;
@@ -637,7 +637,6 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
     case 3:
         if (settings_debugging_mode->wins_mode == true) {
             settings_debugging_mode->wins_mode = !(settings_debugging_mode->wins_mode);
-            press_any_key_to_continue();
             clearConsole();
         }
         else {
@@ -721,7 +720,7 @@ void print_editPlayerMenu(Game* game, bool used_cards[15][5]) {
         printf("               Редактор игроков                 \n");
         printf("================================================\n");
         printf("1. Добавить/изменить карты игроку\n");
-        printf("2. Добавить/изменить случайные карты игроку\n");
+        printf("2. Сгенерировать случайные карты игроку\n");
         printf("3. Очистить карты игроку\n");
         printf("4. Очистить всех игроков\n");
         printf("5. Задать количество игроков\n");
@@ -746,7 +745,7 @@ void print_editPlayerMenu(Game* game, bool used_cards[15][5]) {
                 clearConsole();
                 break;
             }
-            input_players_cards(game->players, game->current_players, used_cards, choice_player);
+            deal_cards(game->players, game->current_players, used_cards, choice_player);
             clearConsole();
             break;
         case 2:
@@ -1205,7 +1204,7 @@ void clear_all_players_cards(Player* players, int current_players, bool used_car
 
 
 
-void input_players_cards(Player players[], int current_players, bool used_cards[15][5], int choice_player) {
+void deal_cards(Player players[], int current_players, bool used_cards[15][5], int choice_player) {
     int rank_choice_card1, suit_choice_card1;
     int rank_choice_card2, suit_choice_card2;
 
@@ -1469,8 +1468,6 @@ void deal_random_cards(Player players[], int current_players, bool used_cards[15
         players[choice_player - 1].hand.card2 = available_deck[1];
         used_cards[players[choice_player - 1].hand.card1.rank][players[choice_player - 1].hand.card1.suit] = true;
         used_cards[players[choice_player - 1].hand.card2.rank][players[choice_player - 1].hand.card2.suit] = true;
-    
-    
 
 }
 
@@ -1546,7 +1543,6 @@ void input_board_cards(Game* game, bool used_cards[15][5], int start_index, int 
         printf("Не удалось ввести все карты, изменения отменены.\n");
     }
 }
-
 
 void randomize_board_cards(Game* game, bool used_cards[15][5], int start_index, int num_cards) {
     int rank_choice, suit_choice;
@@ -1769,7 +1765,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
     result.hand_rank = HIGH_CARD;
     result.high_card = NONE_RANK;
     for (int i = 0; i < 5; i++) {
-        result.kicker[i] = NONE_RANK; // Инициализация кикеров
+        result.kicker[i] = NONE_RANK;
     }
 
     int card_count[15] = { 0 };   // Подсчет карт по рангу (индексы от 2 до Туза)
@@ -1853,7 +1849,6 @@ PokerCombination determine_hand(Hand hand, Board board) {
         qsort(flush_cards, flush_card_count, sizeof(Rank), [](const void* a, const void* b) {
             return (*(Rank*)b - *(Rank*)a);
             });
-
 
         // Проверка на стрит-флеш
         for (int i = 0; i < flush_card_count - 4; i++) {
@@ -1947,7 +1942,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
     result.hand_rank = HIGH_CARD;
     result.high_card = highest_rank;
     int kicker_index = 0;
-    for (int rank = ACE; rank >= TWO && kicker_index < 5; rank--) {
+    for (int rank = ACE; rank >= TWO && kicker_index < 4; rank--) {
         if (card_count[rank] == 1) {
             result.kicker[kicker_index++] = static_cast<Rank>(rank);
         }
@@ -1956,7 +1951,10 @@ PokerCombination determine_hand(Hand hand, Board board) {
     return result;
 }
 
-void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numSimulations, Settings_debugging_mode *settings) {
+
+
+
+void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numSimulations, Settings_debugging_mode* settings) {
     // Инициализируем победы, поражения и ничьи для каждого игрока
     for (int i = 0; i < game->current_players; i++) {
         game->players[i].wins = 0;
@@ -1964,14 +1962,21 @@ void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numS
         game->players[i].losses = 0;
     }
 
+    // Инициализация массива использованных карт (карты игроков и борда)
+    initialize_used_cards(game, used_cards);
+
     for (int i = 0; i < choice_numSimulations; i++) {
         Card deck[52];
         int deck_index = 0;
 
+        // Временно копируем used_cards для каждой симуляции
+        bool sim_used_cards[15][5];
+        memcpy(sim_used_cards, used_cards, sizeof(sim_used_cards));
+
         // Заполняем колоду, исключая карты, которые уже были использованы
         for (int rank = 2; rank <= 14; rank++) {
             for (int suit = 1; suit <= 4; suit++) {
-                if (!used_cards[rank][suit]) {
+                if (!sim_used_cards[rank][suit]) {
                     deck[deck_index].rank = (Rank)rank;
                     deck[deck_index].suit = (Suit)suit;
                     deck_index++;
@@ -1989,12 +1994,23 @@ void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numS
 
         // Эмулируем недостающие карты на столе, создавая симулированный борд
         Card simulation_board[5];
+
+        // Копируем уже известные карты на борде
         for (int j = 0; j < game->board.num_cards; j++) {
-            simulation_board[j] = game->board.cards[j];  // Копируем уже известные карты
+            simulation_board[j] = game->board.cards[j];
         }
 
+        // Дополняем борд случайными картами, не использованными ранее
         for (int j = game->board.num_cards; j < 5; j++) {
-            simulation_board[j] = deck[--deck_index];  // Симулируем оставшиеся карты
+            bool card_found = false;
+            while (!card_found) {
+                simulation_board[j] = deck[--deck_index];  // Берём карту из перемешанной колоды
+                // Проверяем, что карта не использована
+                if (!sim_used_cards[simulation_board[j].rank][simulation_board[j].suit]) {
+                    sim_used_cards[simulation_board[j].rank][simulation_board[j].suit] = true;  // Отмечаем как использованную
+                    card_found = true;  // Карта найдена
+                }
+            }
         }
 
         // Создаем временный объект типа Board для симулированных карт
@@ -2044,9 +2060,7 @@ void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numS
         }
 
         // В тестовом режиме выводим информацию о симуляции
-        
         calculate_probabilities_debugging(game, settings, simulated_board, player_hands, i, tie, best_player);
-        
 
         // Освобождаем память после использования
         free(player_hands);
@@ -2062,6 +2076,34 @@ void calculate_probabilities(Game* game, bool used_cards[15][5], int choice_numS
         printf("Ничьи: %.2f%%\n", (game->players[i].ties / total_simulations) * 100);
     }
 }
+
+
+
+
+void initialize_used_cards(Game* game, bool used_cards[15][5]) {
+    // Инициализируем массив, помечаем все карты как неиспользованные
+    for (int rank = 2; rank <= 14; rank++) {
+        for (int suit = 1; suit <= 4; suit++) {
+            used_cards[rank][suit] = false;
+        }
+    }
+
+    // Помечаем карты игроков как использованные
+    for (int i = 0; i < game->current_players; i++) {
+        Card card1 = game->players[i].hand.card1;
+        Card card2 = game->players[i].hand.card2;
+        used_cards[card1.rank][card1.suit] = true;
+        used_cards[card2.rank][card2.suit] = true;
+    }
+
+    // Помечаем уже открытые карты на борде как использованные
+    for (int i = 0; i < game->board.num_cards; i++) {
+        Card board_card = game->board.cards[i];
+        used_cards[board_card.rank][board_card.suit] = true;
+    }
+}
+
+
 
 void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* settings, Board simulated_board, PokerCombination* player_hands, int current_simulation, bool tie, int best_player) {
     
