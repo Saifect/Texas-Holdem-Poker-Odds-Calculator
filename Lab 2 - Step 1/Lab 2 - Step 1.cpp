@@ -43,7 +43,7 @@ typedef struct {
 // Игроки
 typedef struct {
     Hand hand;     // Рука игрока
-    double equity; // Вероятность забрать лавэ у соперника (пока не реализовано)
+    double equity; // Вероятность забрать лавэ у соперника 
     int wins;
     int ties;
     int losses;
@@ -51,17 +51,17 @@ typedef struct {
 
 //Игровое поле//
 typedef struct {
-	Card cards[5]; //Карты на борде
-	int num_cards; //Количество карт на борде
+	Card cards[5];
+	int num_cards; 
 }Board;
 
-// Структура для представления игры с несколькими игроками
+
 typedef struct {
     Player players[12]; // Массив игроков (до 12)
-    int num_players;    // Количество игроков в игре
+    int num_players;    
     int current_players;
-    Board board;        // Игровое поле
-    char phase[10];     // Фаза игры (например, префлоп, флоп, терн, ривер)
+    Board board;        
+    char phase[10];     
 } Game;
 
 // Покерные комбинации
@@ -75,14 +75,14 @@ typedef enum {
     FULL_HOUSE,       // Фулл хаусее
     FOUR_OF_A_KIND,   // Каре
     STRAIGHT_FLUSH,   // Стрит флеш
-    ROYAL_FLUSH       // Рояль (Нет бл пианино)
+    ROYAL_FLUSH       // Рояль (Нет блин пианино)
 } PokerHandRank;
 
 // Структура для покерной комбинации
 typedef struct {
-    PokerHandRank hand_rank; // Ранг комбинации
-    Rank high_card;          // Старшая карта (стрит и флэш)
-    Rank kicker[5];           // Кикеры макс 4
+    PokerHandRank hand_rank; 
+    Rank high_card;          
+    Rank kicker[5];           
 } PokerCombination;
 
 typedef struct {
