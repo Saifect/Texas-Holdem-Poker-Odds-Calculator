@@ -97,14 +97,14 @@ typedef struct {
 void initialize_game(Game *game, int num_players);
 
 // Print Menu Functions
-void print_mainMenu(int* choice);
+void print_mainMenu(Game* game, PokerCombination* result_player, int* choice);
 void print_editPlayerMenu(Game* game, bool used_cards[15][5]);
 void print_editBoardMenu(Game* game, bool used_cards[15][5]);
-void print_calculatorMenu();
+void print_calculatorMenu(Game* game, PokerCombination* result_player);
 
 // Main Menu Functions
 void get_user_choice(int* choice);
-void handle_mainMenu_choice(int choice);
+void handle_mainMenu_choice(Game* game, PokerCombination* result_player, int choice);
 void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used_cards[15][5], int* num_simulations, Settings_debugging_mode* settings_debugging_mode);
 void initialize_used_cards(Game* game, bool used_cards[15][5]);
 // Initialization Functions
@@ -116,7 +116,7 @@ void init_board(Board* board);
 void init_game(Game* game, Player player1, Player player2, Board board, const char* phase);
 
 // Menu Handling Functions
-void handle_calculatorMenu_choice(int choice, Game* game, bool* exit);
+void handle_calculatorMenu_choice(int choice, Game* game, bool* exit, PokerCombination* result_player);
 
 // Utility Functions
 const char* get_rank_name(Rank rank);
@@ -161,21 +161,26 @@ void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* sett
 //============MAIN_FUNCTION============//
 int main(){
 
-    //Какая-то непонятная фигня//
-    system("chcp 65001"); 
-    clearConsole();
-    /// Установка кодировок каких-то хз че это
+    ///Инициализация игры///
+    Game game;
+    initialize_game(&game, 12);
+
+    PokerCombination* result_player = (PokerCombination*)malloc(game.num_players * sizeof(PokerCombination));
+
+    /// Установка кодировок 
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
+
     //Для православного языка
     setlocale(LC_ALL, "Rus");
-    ///Основная логика///
+
     while (true) {
         int choice;
-        print_mainMenu(&choice);
+        print_mainMenu(&game, result_player, &choice);
         clearConsole();
     }
-  
+
+    free(result_player);
 	return 0;
 }
 
@@ -219,7 +224,7 @@ void initialize_game(Game* game, int num_players) {
 
 
 //Начальное меню//
-void print_mainMenu(int* choice) {
+void print_mainMenu(Game* game, PokerCombination* result_player,int* choice) {
 	printf("\n");
     printf("================================================\n");
 	printf("               Добро пожаловать!                \n");
@@ -234,7 +239,7 @@ void print_mainMenu(int* choice) {
     printf("================================================\n");
 	printf("Ваш выбор: ");
     get_user_choice(choice);
-    handle_mainMenu_choice(*choice);
+    handle_mainMenu_choice(game, result_player, *choice);
 }
 
 //Получение выбора пользователя//
@@ -243,7 +248,7 @@ void get_user_choice(int *choice) {
 }
 
 //Обработка выбора пользователя в основном меню//
-void handle_mainMenu_choice(int choice) {
+void handle_mainMenu_choice(Game* game, PokerCombination* result_player, int choice) {
     switch (choice) {
     case 0:
         printf("Выход из программы.\n");
@@ -255,7 +260,7 @@ void handle_mainMenu_choice(int choice) {
 
     case 1:
         clearConsole();
-        print_calculatorMenu();
+        print_calculatorMenu(game, result_player);
         break;
     case 2:
         printf("Не реализовано\n");
@@ -282,17 +287,16 @@ void handle_mainMenu_choice(int choice) {
 
 
 //Меню калькулятора вероятностей//
-void print_calculatorMenu() {
+void print_calculatorMenu(Game* game, PokerCombination* result_player) {
     srand(time(NULL));
     
     
-    Game game;
-    initialize_game(&game, 12);
+   
 
 
-    strcpy(game.phase, "preflop");
+    strcpy(game->phase, "preflop");
   
-    game.current_players = 2;
+    game->current_players = 2;
     int choice = -1;
     bool edit_mode = false;
     int edit_current_player = 0;
@@ -306,29 +310,29 @@ void print_calculatorMenu() {
         printf("             Текущая информация                 \n");
         printf("================================================\n");
 
-        for (int i = 0; i < game.current_players; i++) {
+        for (int i = 0; i < game->current_players; i++) {
             // Проверяем, были ли введены карты текущего чела
-            if (game.players[i].hand.card1.rank != NONE_RANK && game.players[i].hand.card2.rank != NONE_RANK) {
+            if (game->players[i].hand.card1.rank != NONE_RANK && game->players[i].hand.card2.rank != NONE_RANK) {
                 printf("Карты игрока %d: %s %s и %s %s\n", i + 1,
-                    get_rank_name(game.players[i].hand.card1.rank),
-                    get_suit_name(game.players[i].hand.card1.suit),
-                    get_rank_name(game.players[i].hand.card2.rank),
-                    get_suit_name(game.players[i].hand.card2.suit));
+                    get_rank_name(game->players[i].hand.card1.rank),
+                    get_suit_name(game->players[i].hand.card1.suit),
+                    get_rank_name(game->players[i].hand.card2.rank),
+                    get_suit_name(game->players[i].hand.card2.suit));
             }
             else {
                 printf("Карты игрока %d: не заданы\n", i + 1);
             }
         }
   
-        if (strcmp(game.phase, "preflop") == 0) {
+        if (strcmp(game->phase, "preflop") == 0) {
             printf("Карты на столе: отсутствуют\n");
         }
         else {
-            display_board_cards(&game.board);
+            display_board_cards(&game->board);
 
         }
 
-        printf("Текущяя стадия игры (улица): %s\n", game.phase);
+        printf("Текущяя стадия игры (улица): %s\n", game->phase);
 
         
 
@@ -347,15 +351,15 @@ void print_calculatorMenu() {
 
 
         get_user_choice(&choice);
-        handle_calculatorMenu_choice(choice, &game, &exit);
+        handle_calculatorMenu_choice(choice, game, &exit, result_player);
     }
 }
 
 
 
-void handle_calculatorMenu_choice(int choice, Game* game, bool* exit) {
-    // Инициализация результата комбинацийй
-    PokerCombination* result_player = (PokerCombination*)malloc(game->num_players * sizeof(PokerCombination));
+void handle_calculatorMenu_choice(int choice, Game* game, bool* exit, PokerCombination* result_player) {
+   
+
     if (result_player == NULL) {
         printf("Ошибка: недостаточно памяти для вычисления комбинаций.\n");
         return;
@@ -438,7 +442,7 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit) {
         break;
     }
 
-    free(result_player);
+   
 }
 
 
@@ -451,6 +455,7 @@ void print_probabilityMenu(Game* game, bool used_cards[15][5]) {
     settings_debugging_mode.current_winner = -1;
     settings_debugging_mode.ties_mode = false;
     settings_debugging_mode.wins_mode = false;
+
     while (exit == false) {
        
         printf("\n");
