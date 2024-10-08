@@ -29,10 +29,23 @@ typedef enum {
 } Rank;
 
 //Игральная карта//
-typedef struct {
-	Suit suit;
-	Rank rank;
-}Card;
+class Card {
+private:
+    int rank;
+    int suit;
+
+public:
+    // Конструктор
+    Card(int r = 0, int s = 0) : rank(r), suit(s) {}
+
+    // Методы доступа к полям
+    int get_rank() const { return rank; }
+    int get_suit() const { return suit; }
+
+    void set_rank(int r) { rank = r; }
+    void set_suit(int s) { suit = s; }
+};
+
 
 //Игральная рука игрока (Техасский Холдем)//
 typedef struct {
@@ -40,29 +53,71 @@ typedef struct {
 	Card card2; //Вторая великолепная карта 
 }Hand;
 
-// Игроки
-typedef struct {
-    Hand hand;     // Рука игрока
-    double equity; // Вероятность забрать лавэ у соперника 
+class Player {
+private:
+    Hand hand;
     int wins;
-    int ties;
     int losses;
-} Player;
+    int ties;
+
+public:
+    // Конструктор
+    Player() : wins(0), losses(0), ties(0) {}
+
+    // Методы доступа
+    Hand get_hand() const { return hand; }
+    int get_wins() const { return wins; }
+    int get_losses() const { return losses; }
+    int get_ties() const { return ties; }
+
+    void set_hand(const Hand& h) { hand = h; }
+    void add_win() { wins++; }
+    void add_loss() { losses++; }
+    void add_tie() { ties++; }
+};
+
 
 //Игровое поле//
-typedef struct {
-	Card cards[5];
-	int num_cards; 
-}Board;
+class Board {
+private:
+    Card cards[5];  // 5 карт на доске
+    int num_cards;
+
+public:
+    // Конструктор
+    Board() : num_cards(0) {}
+
+    // Методы доступа
+    Card* get_cards() { return cards; }
+    int get_num_cards() const { return num_cards; }
+
+    void set_cards(const Card* new_cards, int count) {
+        num_cards = count;
+        for (int i = 0; i < count; ++i) {
+            cards[i] = new_cards[i];
+        }
+    }
+};
 
 
-typedef struct {
-    Player players[12]; // Массив игроков (до 12)
-    int num_players;    
+class Game {
+private:
+    Player players[12];
+    Board board;
     int current_players;
-    Board board;        
-    char phase[10];     
-} Game;
+
+public:
+    // Конструктор
+    Game() : current_players(0) {}
+
+    // Методы доступа
+    Player* get_players() { return players; }
+    Board get_board() const { return board; }
+    int get_current_players() const { return current_players; }
+
+    void set_board(const Board& b) { board = b; }
+    void set_current_players(int num) { current_players = num; }
+};
 
 // Покерные комбинации
 typedef enum {
@@ -159,30 +214,29 @@ void compare_all_hands(Game* game, PokerCombination hands[]);
 
 void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* settings, Board simulated_board, PokerCombination* player_hands, int current_simulation, bool tie, int best_player);
 //============MAIN_FUNCTION============//
-int main(){
-
-    ///Инициализация игры///
-    Game game;
-    initialize_game(&game, 12);
-
-    PokerCombination* result_player = (PokerCombination*)malloc(game.num_players * sizeof(PokerCombination));
-
-    /// Установка кодировок 
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
-
-    //Для православного языка
+int main() {
     setlocale(LC_ALL, "Rus");
 
-    while (true) {
-        int choice;
-        print_mainMenu(&game, result_player, &choice);
-        clearConsole();
+    // Создание динамического массива объектов класса Player
+    int num_players = 3;
+    Player* players = new Player[num_players];
+
+    // Установка значений для игроков
+    for (int i = 0; i < num_players; ++i) {
+        players[i].add_win();  // Пример вызова метода класса Player
     }
 
-    free(result_player);
-	return 0;
+    // Вывод информации о игроках
+    for (int i = 0; i < num_players; ++i) {
+        printf("Игрок %d: победы = %d\n", i + 1, players[i].get_wins());
+    }
+
+    // Освобождение памяти
+    delete[] players;
+
+    return 0;
 }
+
 
 //======IMPLENTATION_OF_FUNCTIONS======//
 
@@ -217,9 +271,6 @@ void initialize_game(Game* game, int num_players) {
 
     // Устанавливаем количество игроков//
     game->num_players = num_players;
-
- 
-
 }
 
 
@@ -290,10 +341,6 @@ void handle_mainMenu_choice(Game* game, PokerCombination* result_player, int cho
 void print_calculatorMenu(Game* game, PokerCombination* result_player) {
     srand(time(NULL));
     
-    
-   
-
-
     strcpy(game->phase, "preflop");
   
     game->current_players = 2;
@@ -1021,10 +1068,11 @@ void print_editBoardMenu(Game* game, bool used_cards[15][5]) {
 
 
 //Инициализация карты//
-void init_card(Card* card, Suit suit, Rank rank){
-	card->suit = suit;
-	card->rank = rank;
+void set_card(int r, int s) {
+    rank = r;
+    suit = s;
 }
+
 
 //Случайная инициализация карты//
 void init_randomCard(Card* card) {
