@@ -2377,7 +2377,8 @@ PokerCombination determine_hand(Hand hand, Board board) {
 
 
 void calculate_probabilities(Game* game, bool used_cards[15][4], int choice_numSimulations, Settings_debugging_mode* settings) {
-    // победы, поражения и ничьи для каждого игрока
+    
+// победы, поражения и ничьи для каждого игрока
     for (int i = 0; i < game->get_current_players(); i++) {
         game->get_player(i).set_wins(0);
         game->get_player(i).set_ties(0);
