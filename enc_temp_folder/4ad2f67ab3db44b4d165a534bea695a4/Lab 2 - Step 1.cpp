@@ -902,7 +902,7 @@ void print_probabilityMenu(Game* game, bool used_cards[15][4]) {
     settings_debugging_mode.show = false;
     settings_debugging_mode.current_winner = -1;
     settings_debugging_mode.ties_mode = false;
-    settings_debugging_mode.wins_mode = false;
+    settings_debugging_mode.wins_mode = true;
 
     while (exit == false) {
 
@@ -2543,7 +2543,7 @@ void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* sett
             printf("\n");
         }
     }
-    else {
+    else if (settings->ties_mode == true) {
         if (best_player + 1 == settings->current_winner && settings->current_winner != -1) {
             printf("Симуляция %d:\n", current_simulation + 1);
             printf("Карты на столе: ");
