@@ -172,14 +172,18 @@ int compare_hands(PokerCombination hand1, PokerCombination hand2) {
         }
         break;
 
-
-    case TWO_PAIR:
-        // для пары и двух пар используются три кикера
-        for (int i = 0; i < 3; i++) {
-            if (hand1.kicker[i] > hand2.kicker[i]) return 1;
-            if (hand1.kicker[i] < hand2.kicker[i]) return -1;
+    case TWO_PAIR: {
+        // Сравниваем старшую пару
+        if (hand1.high_card != hand2.high_card) {
+            return hand1.high_card - hand2.high_card;
         }
-        break;
+        // Сравниваем младшую пару
+        if (hand1.kicker[0] != hand2.kicker[0]) {
+            return hand1.kicker[0] - hand2.kicker[0];
+        }
+        // Сравниваем кикер (старшую карту вне пар)
+        return hand1.kicker[1] - hand2.kicker[1];
+    }
 
     case FLUSH:
         // у флеша все пять карт сравниваются по убыванию
@@ -383,10 +387,12 @@ PokerCombination determine_hand(Hand hand, Board board) {
         result.hand_rank = TWO_PAIR;
         result.high_card = top_pair;
         result.kicker[0] = second_pair;
+
+        // Ищем старшую карту вне пар (кикер)
         for (int rank = ACE; rank >= TWO; rank--) {
             if (card_count[rank] > 0 && rank != top_pair && rank != second_pair) {
                 result.kicker[1] = static_cast<Rank>(rank);
-                break;
+                break; // Берем только старшую карту
             }
         }
         return result;
@@ -419,6 +425,9 @@ PokerCombination determine_hand(Hand hand, Board board) {
 
 void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int choice_numSimulations, Settings* settings) {
    
+    // Замер времени начала выполнения
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     // Сброс статистики
     for (int i = 0; i < game->get_current_players(); i++) {
         game->get_player(i).set_wins(0);
@@ -542,6 +551,16 @@ void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], 
         
         }
     }
+
+    // Замер времени окончания выполнения
+    auto end_time = std::chrono::high_resolution_clock::now();
+
+    // Вычисление времени выполнения
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+
+    // Вывод времени выполнения
+    printf("Время выполнения функции: %lld мс\n", duration);
+
 }
 
 void debug_board(const Board& board) {

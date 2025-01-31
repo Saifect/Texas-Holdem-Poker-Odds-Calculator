@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "Functions.h"
 
-void print_editPlayerMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
+void print_editPlayerMenu(Game* game, Settings* settings, bool used_cards[NUM_RANKS][NUM_SUITS]) {
     int choice;
     bool back = false;
     int choice_player;
@@ -48,7 +48,9 @@ void print_editPlayerMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
         printf("4. Очистить карты игроку\n");
         printf("5. Очистить карты всех игроков\n");
         printf("6. Задать количество игроков\n");
-        printf("7. Вывести массив учтённых карт (отладка)\n");
+        if (settings->get_debugging_mode() == true) {
+            printf("7. Вывести массив учтённых карт (отладка)\n");
+        }
         printf("-----------------------------------------------\n");
         printf("0. Назад\n");
         printf("================================================\n");
@@ -57,11 +59,11 @@ void print_editPlayerMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
         // Получение выбора пользователя
         choice = (int)scanf_secure("int");
 
-        handle_editPlayerMenu_choice(choice, game, &back, used_cards);
+        handle_editPlayerMenu_choice(choice, game, settings, &back, used_cards);
     }
 }
 
-void handle_editPlayerMenu_choice(int choice, Game* game, bool* back, bool used_cards[NUM_RANKS][NUM_SUITS]) {
+void handle_editPlayerMenu_choice(int choice, Game* game, Settings* settings ,bool* back, bool used_cards[NUM_RANKS][NUM_SUITS]) {
     int choice_player;
 
     switch (choice) {
@@ -170,8 +172,10 @@ void handle_editPlayerMenu_choice(int choice, Game* game, bool* back, bool used_
         clearConsole();
         break;
     case 7:
-        print_used_cards(used_cards);
-        press_any_key_to_continue();
+        if (settings->get_debugging_mode() == true) {
+            print_used_cards(used_cards);
+            press_any_key_to_continue();
+        }
         clearConsole();
         break;
     default:

@@ -351,7 +351,7 @@ void Game::set_num_players(int num) {
     num_players = num;
 }
 
-void Game::clear_all_players_cards(bool used_cards[14][4]) {
+void Game::clear_all_players_cards(bool used_cards[NUM_RANKS][NUM_SUITS]) {
     for (int i = 0; i < current_players; i++) {
         players[i].clear_player_cards(used_cards);
 
@@ -376,7 +376,8 @@ void Game::add_player(const Player& player, int index) {
 
 // Конструктор по умолчанию
 Settings::Settings()
-    : ties_visible_mode(false),
+    : debugging_mode(false),
+    ties_visible_mode(false),
     wins_visible_mode(false),
     simulations_visible_mode(false),
     tie(false),
@@ -384,12 +385,20 @@ Settings::Settings()
     current_winner(-1),
     debug_player_index(-1),
     max_players(10),          // Пример значения по умолчанию
-    min_simulations(1000),    // Пример значения по умолчанию
+    min_simulations(100),    // Пример значения по умолчанию
     max_simulations(1000000), // Пример значения по умолчанию
-    default_simulations(250000) // Пример значения по умолчанию
+    num_simulations(250000) // Пример значения по умолчанию
 {}
 
 // Геттеры и сеттеры
+
+bool Settings::get_debugging_mode() const {
+    return debugging_mode;
+}
+
+void Settings::set_debugging_mode(bool mode) {
+    debugging_mode = mode;
+}
 
 bool Settings::get_ties_visible_mode() const {
     return ties_visible_mode;
@@ -473,16 +482,17 @@ void Settings::set_max_simulations(int max) {
     max_simulations = max;
 }
 
-int Settings::get_default_simulations() const {
-    return default_simulations;
+int Settings::get_num_simulations() const {
+    return num_simulations;
 }
 
-void Settings::set_default_simulations(int default_sim) {
-    default_simulations = default_sim;
+void Settings::set_num_simulations(int default_sim) {
+    num_simulations = default_sim;
 }
 
 // Метод для инициализации настроек
 void Settings::initialize() {
+    debugging_mode = false;
     ties_visible_mode = false;
     wins_visible_mode = false;
     simulations_visible_mode = false;
@@ -491,7 +501,7 @@ void Settings::initialize() {
     current_winner = -1;
     debug_player_index = -1;
     max_players = 10;        
-    min_simulations = 1000;
+    min_simulations = 100;
     max_simulations = 1000000;
-    default_simulations = 250000;
+    num_simulations = 250000;
 }

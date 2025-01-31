@@ -29,7 +29,6 @@ void get_user_choice(int* choice) {
 void handle_mainMenu_choice(Game* game, Settings* settings, PokerCombination* result_player, int choice) {
     switch (choice) {
     case 0:
-        printf("Выход из программы.\n");
         exit(0);
         break;
     case -1:
@@ -46,13 +45,12 @@ void handle_mainMenu_choice(Game* game, Settings* settings, PokerCombination* re
         clearConsole();
         break;
     case 3:
-        printf("Не реализовано\n");
-        press_any_key_to_continue();
         clearConsole();
+        print_settingsMenu(settings);
         break;
     case 4:
-        printf("Status: Alpha Stable\n");
-        printf("Version program: 2.9");
+        printf("Status: Stable\n");
+        printf("Version program: 3.0");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;
@@ -61,3 +59,4 @@ void handle_mainMenu_choice(Game* game, Settings* settings, PokerCombination* re
         break;
     }
 }
+

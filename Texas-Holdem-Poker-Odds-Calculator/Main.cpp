@@ -13,7 +13,8 @@ int main() {
     Settings settings;
     initialization_debug_settings(&settings); // Инициализация настроек
 
-    PokerCombination result_player[MAX_PLAYERS];
+  // Создание массива PokerCombination с использованием std::vector
+    PokerCombination* result_player = new PokerCombination[settings.get_max_players()];
 
     /// Установка кодировок 
     SetConsoleOutputCP(CP_UTF8);

@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "Functions.h"
 
-void print_editBoardMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
+void print_editBoardMenu(Game* game, Settings* settings, bool used_cards[NUM_RANKS][NUM_SUITS]) {
     int choice;
     bool exit_editor = false;
     int num_cards;
@@ -51,28 +51,29 @@ void print_editBoardMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
         printf("7. Очистить Turn\n");
         printf("8. Очистить River\n");
         printf("9. Очистить стол\n");
-        if (debugging_mode == false) {
-            printf("10. Показать элементы отладки\n");
+        if (settings->get_debugging_mode() == true) {
+            if (debugging_mode == false) {
+                printf("10. Показать элементы отладки\n");
+            }
+            else {
+                printf("10. Скрыть элементы отладки\n");
+            }
+            if (debugging_mode == true) {
+                printf("11. Получить количество карт на столе (отладка)\n");
+                printf("12. Вывести массив учтённых карт (отладка)\n");
+            }
         }
-        else {
-            printf("10. Скрыть элементы отладки\n");
-        }
-        if (debugging_mode == true) {
-            printf("11. Получить количество карт на столе (отладка)\n");
-            printf("12. Вывести массив учтённых карт (отладка)\n");
-        }
-
         printf("-----------------------------------------------\n");
         printf("0. Назад\n");
         printf("================================================\n");
         printf("Выберите действие: ");
         choice = (int)scanf_secure("int");
 
-        handle_editBoardMenu_choice(choice, game, &exit_editor, used_cards, &deal_cards, &debugging_mode);
+        handle_editBoardMenu_choice(choice, game, settings, &exit_editor, used_cards, &deal_cards, &debugging_mode);
     }
 }
 
-void handle_editBoardMenu_choice(int choice, Game* game, bool* exit_editor, bool used_cards[NUM_RANKS][NUM_SUITS], bool* deal_cards, bool* debugging_mode) {
+void handle_editBoardMenu_choice(int choice, Game* game, Settings* settings, bool* exit_editor, bool used_cards[NUM_RANKS][NUM_SUITS], bool* deal_cards, bool* debugging_mode) {
     int num_cards;
 
     switch (choice) {
@@ -208,24 +209,30 @@ void handle_editBoardMenu_choice(int choice, Game* game, bool* exit_editor, bool
         break;
 
     case 10:
-        *debugging_mode = !(*debugging_mode);
+        if (settings->get_debugging_mode() == true) {
+            *debugging_mode = !(*debugging_mode);
+        }
         break;
 
     case 11:
-        num_cards = game->get_board().get_num_cards();
-        if (num_cards > 4) {
-            printf("На столе сейчас: %d карт\n", num_cards);
+        if (settings->get_debugging_mode() == true) {
+            num_cards = game->get_board().get_num_cards();
+            if (num_cards > 4) {
+                printf("На столе сейчас: %d карт\n", num_cards);
+            }
+            else {
+                printf("На столе сейчас: %d карты\n", num_cards);
+            }
+            press_any_key_to_continue();
         }
-        else {
-            printf("На столе сейчас: %d карты\n", num_cards);
-        }
-        press_any_key_to_continue();
         break;
 
     case 12:
-        print_used_cards(used_cards);
-        press_any_key_to_continue();
-        clearConsole();
+        if (settings->get_debugging_mode() == true) {
+            print_used_cards(used_cards);
+            press_any_key_to_continue();
+            clearConsole();
+        }
         break;
 
     case 0:

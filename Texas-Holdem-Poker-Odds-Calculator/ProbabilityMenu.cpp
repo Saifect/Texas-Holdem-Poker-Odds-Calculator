@@ -1,8 +1,9 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #include "Functions.h"
 
-void print_probabilityMenu(Game* game, Settings* settings,bool used_cards[NUM_RANKS][NUM_SUITS]) {
-    int num_simulations = DEFAULT_SIMULATIONS;
+void print_probabilityMenu(Game* game, Settings* settings, bool used_cards[NUM_RANKS][NUM_SUITS]) {
+    
+    int num_simulations = settings->get_num_simulations();
     int probabilityMenu_choice = 0;
     bool exit = false;
 
@@ -38,25 +39,27 @@ void print_probabilityMenu(Game* game, Settings* settings,bool used_cards[NUM_RA
             print_board_cards(&game->get_board());
         }
         printf("Текущая стадия игры (улица): %s\n", game->get_phase());
+        double estimated_time = (num_simulations * (1.65 + (game->get_current_players() - 2) * ((3.5 - 1.65) / (12 - 2)))) / settings->get_num_simulations();
 
-        double estimated_time = (num_simulations * 1.75) / 250000.0;
+        
+        num_simulations = settings->get_num_simulations();
         printf("================================================\n");
         printf("             Настройка симуляций               \n");
         printf("================================================\n");
         printf("Текущее количество симуляций: %d\n", num_simulations);
         printf("Будет считаться примерно %.2f секунд(ы)\n", estimated_time); // Вывод времени
         if (settings->get_wins_visible_mode() == false && settings->get_ties_visible_mode() == false && settings->get_simulations_visible_mode() == false) {
-            printf("Режим отладки: Выключен\n");
+            printf("Режим отладки для симмуляций: Выключен\n");
         }
         else {
-            printf("Режим отладки: Включен\n");
+            printf("Режим отладки для симмуляций: Включен\n");
         }
         printf("================================================\n");
         printf("       Редактор вычисления вероятностей         \n");
         printf("================================================\n");
         printf("1. Расчёт по методу симуляций Монте-Карло\n");
         printf("2. Изменить количество симуляций\n");
-        if (settings->get_show() == true) {
+        if (settings->get_show() == true && settings->get_debugging_mode() == true) {
             printf("3. Скрыть элементы отладки\n");
             printf("4. %s отображение побед для игрока (отладка)\n",
                 settings->get_wins_visible_mode() ? "Выключить" : "Включить");
@@ -66,7 +69,7 @@ void print_probabilityMenu(Game* game, Settings* settings,bool used_cards[NUM_RA
                 settings->get_simulations_visible_mode() ? "Выключить" : "Включить");
             printf("7. Вывести массив учтённых карт (отладка)\n");
         }
-        else {
+        else if (settings->get_debugging_mode() == true) {
             printf("3. Показать элементы отладки\n");
         }
         printf("-----------------------------------------------\n");
@@ -75,12 +78,11 @@ void print_probabilityMenu(Game* game, Settings* settings,bool used_cards[NUM_RA
         printf("Ваш выбор: ");
 
         get_user_choice(&probabilityMenu_choice);
-        handle_probabilityMenu_choice(probabilityMenu_choice, game, &exit, used_cards, &num_simulations, settings);
+        handle_probabilityMenu_choice(probabilityMenu_choice, game, &exit, used_cards, settings);
     }
 }
 
-void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used_cards[NUM_RANKS][NUM_SUITS], int* num_simulations, Settings* settings) {
-    bool debugging_mode = false;
+void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used_cards[NUM_RANKS][NUM_SUITS], Settings* settings) {
 
     int choice_user;
     char str_choice[4];
@@ -109,22 +111,16 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
             press_any_key_to_continue();
             clearConsole();
         }
-        else if (*num_simulations >= 10 && *num_simulations <= 20000000) {
+        else if (settings->get_num_simulations() >= settings->get_min_simulations() && settings->get_num_simulations() <= settings->get_max_simulations()) {
 
-            if (settings->get_ties_visible_mode() == true || settings->get_wins_visible_mode() == true) {
-                debugging_mode = true;
-            }
-            else {
-                debugging_mode = false;
-            }
-            if (debugging_mode == true && *num_simulations > 5000) {
-                if (*num_simulations > 3000 && *num_simulations < 10000) {
+            if (settings->get_debugging_mode() == true && settings->get_num_simulations() > 5000) {
+                if (settings->get_num_simulations() > 3000 && settings->get_num_simulations() < 10000) {
                     printf("Использовать режим отладки с количеством симуляций < 3000 не рекомендуется\nВы уверены?\n");
                 }
-                if (*num_simulations > 10000 && *num_simulations < 50000) {
+                if (settings->get_num_simulations() > 10000 && settings->get_num_simulations() < 50000) {
                     printf("Оу, это будет долговато.\nДля режима отладки рекомендуется < 3000 симуляций, вы уверены?\n");
                 }
-                if (*num_simulations > 50000 && *num_simulations < 100000) {
+                if (settings->get_num_simulations() > 50000 && settings->get_num_simulations() < 100000) {
                     printf("Это может быть очень долго.\nДля режима отладки рекомендуется < 3000 симуляций, вы уверены?\n");
                 }
                 else {
@@ -143,7 +139,7 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
 
                 if (strcmp(str_choice, "y") == 0 || strcmp(str_choice, "yes") == 0) {
 
-                    printf("Продолжаем выполнение в режиме отладки с %d симуляциями.\n", *num_simulations);
+                    printf("Продолжаем выполнение в режиме отладки с %d симуляциями.\n", settings->get_num_simulations());
 
                 }
                 else {
@@ -159,7 +155,7 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
             }
             printf("Не нажимайте ничего пока не загрузится результат \n");
             printf("Загрузка...\n");
-            calculate_probabilities(game, used_cards, *num_simulations, settings);
+            calculate_probabilities(game, used_cards, settings->get_num_simulations(), settings);
 
             press_any_key_to_continue();
             clearConsole();
@@ -167,9 +163,9 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
         break;
 
     case 2: {
-
+   
         printf("-----------------------------------------------\n");
-        printf("Введите количество симуляций\nДиапазон значений от 100 до 5.000.000\n");
+        printf("Введите количество симуляций\nДиапазон значений от %d до %d\n", settings->get_min_simulations(), settings->get_max_simulations());
         printf("Рекомендуется 100.000 - 300.000 симуляций\nЗначения >1.000.000 могут долго работать\n");
         printf("Или введите 0 для отмены\n");
         printf("-----------------------------------------------\n");
@@ -181,15 +177,16 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
             press_any_key_to_continue();
             clearConsole();
         }
-        else if (num_simulations_new >= 100 && num_simulations_new <= 5000000) {
-            *num_simulations = num_simulations_new; // обновляем количество симуляцийй
-            printf("Вы установили %d симуляций для метода Монте-Карло\n", *num_simulations);
+        else if (num_simulations_new >= settings->get_min_simulations() && num_simulations_new <= settings->get_max_simulations()) {
+            settings->set_num_simulations(num_simulations_new); // обновляем количество симуляций
+            printf("Вы установили %d симуляций для метода Монте-Карло\n", num_simulations_new);
+            printf("Текущее количество симуляций в settings: %d\n", settings->get_num_simulations()); // Отладочный вывод
             press_any_key_to_continue();
             clearConsole();
         }
         else {
-            printf("Вы ввели значение вне диапазона! Используем %d по умолчанию.\n", DEFAULT_SIMULATIONS);
-            *num_simulations = DEFAULT_SIMULATIONS; // значение по умолчанию
+            printf("Вы ввели значение вне диапазона! Используем %d по умолчанию.\n", settings->get_num_simulations());
+            settings->set_num_simulations(DEF_SIMULATIONS); // значение по умолчанию
             press_any_key_to_continue();
             clearConsole();
         }
@@ -197,18 +194,18 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
     }
 
     case 3:
-
-        settings->set_show(!settings->get_show());
+        if (settings->get_debugging_mode() == true) {
+            settings->set_show(!settings->get_show());
+        }
         clearConsole();
-
         break;
 
     case 4:
-        if (settings->get_wins_visible_mode() == true) {
+        if (settings->get_wins_visible_mode() == true && settings->get_debugging_mode() == true) {
             settings->set_wins_visible_mode(false);
             clearConsole();
         }
-        else {
+        else if (settings->get_debugging_mode() == true){
             printf("Введите номер игрока или 0 для отмены: ");
             choice_user = scanf_secure("int");
             if (choice_user == 0) {
@@ -232,38 +229,40 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
                 clearConsole();
             }
         }
+        clearConsole();
         break;
 
     case 5:
-
-        settings->set_ties_visible_mode(!settings->get_ties_visible_mode());
-        if (settings->get_wins_visible_mode() == true) {
-            settings->set_wins_visible_mode(false);
+        if (settings->get_debugging_mode() == true) {
+            settings->set_ties_visible_mode(!settings->get_ties_visible_mode());
+            if (settings->get_wins_visible_mode() == true) {
+                settings->set_wins_visible_mode(false);
+            }
+            if (settings->get_simulations_visible_mode() == true) {
+                settings->set_simulations_visible_mode(false);
+            }
         }
-        if (settings->get_simulations_visible_mode() == true) {
-            settings->set_simulations_visible_mode(false);
-        }
-
         clearConsole();
         break;
 
     case 6:
-
-        settings->set_simulations_visible_mode(!settings->get_simulations_visible_mode());
-        if (settings->get_wins_visible_mode() == true) {
-            settings->set_wins_visible_mode(false);
+        if (settings->get_debugging_mode() == true) {
+            settings->set_simulations_visible_mode(!settings->get_simulations_visible_mode());
+            if (settings->get_wins_visible_mode() == true) {
+                settings->set_wins_visible_mode(false);
+            }
+            if (settings->get_ties_visible_mode() == true) {
+                settings->set_ties_visible_mode(false);
+            }
         }
-        if (settings->get_ties_visible_mode() == true) {
-            settings->set_ties_visible_mode(false);
-        }
-
         clearConsole();
         break;
 
     case 7:
-
-        print_used_cards(used_cards);
-        press_any_key_to_continue();
+        if (settings->get_debugging_mode() == true) {
+            print_used_cards(used_cards);
+            press_any_key_to_continue();
+        }
         clearConsole();
         break;
 

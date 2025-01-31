@@ -50,7 +50,10 @@ void print_calculatorMenu(Game* game, Settings* settings, PokerCombination* resu
         printf("2. Редактор стола и стадий игры\n");
         printf("3. Редактор вычисления вероятностей\n");
         printf("4. Проанализировать комбинации игроков\n");
-        printf("5. Вывести массив учтённых карт (отладка)\n");
+        if (settings->get_debugging_mode() == true) {
+            printf("5. Вывести массив учтённых карт (отладка)\n");
+        }
+
         printf("-----------------------------------------------\n");
         printf("0. Выйти из покерного калькулятора\n");
         printf("================================================\n");
@@ -75,7 +78,7 @@ void handle_calculatorMenu_choice(int choice, Game* game, Settings* settings, bo
         break;
 
     case 0:
-        printf("Вы уверены? Введённые вами карты сбросятся\n");
+        printf("Вы уверены?\n");
         printf("Y/yes - да\n");
         printf("N/no - нет\n");
 
@@ -100,12 +103,12 @@ void handle_calculatorMenu_choice(int choice, Game* game, Settings* settings, bo
 
     case 1:
         clearConsole();
-        print_editPlayerMenu(game, used_cards);
+        print_editPlayerMenu(game, settings, used_cards);
         break;
 
     case 2:
         clearConsole();
-        print_editBoardMenu(game, used_cards);
+        print_editBoardMenu(game, settings, used_cards);
         break;
 
     case 3:
@@ -117,8 +120,13 @@ void handle_calculatorMenu_choice(int choice, Game* game, Settings* settings, bo
         for (int i = 0; i < game->get_current_players() && i < game->get_num_players(); i++) {
             if (game->get_player(i).get_hand().get_const_card(0).get_rank() != NONE_RANK &&
                 game->get_player(i).get_hand().get_const_card(1).get_rank() != NONE_RANK) {
+                if (i == 0) {
+                    printf("-----------------------------------------------\n");
+                }
+                printf("Карты %d-го игрока:\n", i + 1);
                 result_player[i] = determine_hand(game->get_player(i).get_hand(), game->get_board());
                 print_hand(result_player[i]);
+                printf("-----------------------------------------------\n");
             }
             else {
                 printf("Карты %d-го игрока не заданы!\n", i + 1);
@@ -130,8 +138,10 @@ void handle_calculatorMenu_choice(int choice, Game* game, Settings* settings, bo
         break;
 
     case 5:
-        print_used_cards(used_cards);
-        press_any_key_to_continue();
+        if (settings->get_debugging_mode() == true) {
+            print_used_cards(used_cards);
+            press_any_key_to_continue();
+        }
         clearConsole();
         break;
 

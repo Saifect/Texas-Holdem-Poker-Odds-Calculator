@@ -159,7 +159,7 @@ public:
     void set_player(int index, const Player& player);
     Player& get_player(int index);
     void set_num_players(int num);
-    void clear_all_players_cards(bool used_cards[14][4]);
+    void clear_all_players_cards(bool used_cards[NUM_RANKS][NUM_SUITS]);
     void init_game(int num_players);
     void add_player(const Player& player, int index);
 
@@ -194,6 +194,7 @@ typedef struct {
 
 class Settings {
 private:
+    bool debugging_mode;
     bool ties_visible_mode;       // Отображение ничьих
     bool wins_visible_mode;       // Отображение побед
     bool simulations_visible_mode; // Отображение всех симуляций
@@ -205,13 +206,16 @@ private:
     int max_players;              // Максимальное количество игроков
     int min_simulations;          // Минимальное количество симуляций
     int max_simulations;          // Максимальное количество симуляций
-    int default_simulations;      // Количество симуляций по умолчанию
+    int num_simulations;      // Количество симуляций по умолчанию
 
 public:
     // Конструктор по умолчанию
     Settings();
 
     // Геттеры и сеттеры для всех полей
+    bool get_debugging_mode() const;
+    void set_debugging_mode(bool mode);
+
     bool get_ties_visible_mode() const;
     void set_ties_visible_mode(bool mode);
 
@@ -243,8 +247,8 @@ public:
     int get_max_simulations() const;
     void set_max_simulations(int max);
 
-    int get_default_simulations() const;
-    void set_default_simulations(int default_sim);
+    int get_num_simulations() const;
+    void set_num_simulations(int default_sim);
 
     // Метод для инициализации настроек
     void initialize();
