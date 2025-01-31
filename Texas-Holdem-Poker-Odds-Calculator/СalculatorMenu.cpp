@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "Functions.h"
 
-void print_calculatorMenu(Game* game, PokerCombination* result_player) {
+void print_calculatorMenu(Game* game, Settings* settings, PokerCombination* result_player) {
     srand(time(NULL));
 
     game->set_current_players(2);  // Установка текущих игроков через сеттер
@@ -57,11 +57,11 @@ void print_calculatorMenu(Game* game, PokerCombination* result_player) {
         printf("Ваш выбор: ");
 
         get_user_choice(&choice);
-        handle_calculatorMenu_choice(choice, game, &exit, result_player);
+        handle_calculatorMenu_choice(choice, game, settings, &exit, result_player);
     }
 }
 
-void handle_calculatorMenu_choice(int choice, Game* game, bool* exit, PokerCombination* result_player) {
+void handle_calculatorMenu_choice(int choice, Game* game, Settings* settings, bool* exit, PokerCombination* result_player) {
     if (result_player == NULL) {
         printf("Ошибка: недостаточно памяти для вычисления комбинаций.\n");
         press_any_key_to_continue();
@@ -110,7 +110,7 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit, PokerCombi
 
     case 3:
         clearConsole();
-        print_probabilityMenu(game, used_cards);
+        print_probabilityMenu(game, settings, used_cards);
         break;
 
     case 4:
@@ -121,7 +121,7 @@ void handle_calculatorMenu_choice(int choice, Game* game, bool* exit, PokerCombi
                 print_hand(result_player[i]);
             }
             else {
-                printf("Карты %d-го игрока не заданы, поэтому у него не может быть комбинации!\n", i + 1);
+                printf("Карты %d-го игрока не заданы!\n", i + 1);
             }
         }
 

@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "Functions.h"
 
-void print_editPlayerMenu(Game* game, bool used_cards[15][4]) {
+void print_editPlayerMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
     int choice;
     bool back = false;
     int choice_player;
@@ -61,7 +61,7 @@ void print_editPlayerMenu(Game* game, bool used_cards[15][4]) {
     }
 }
 
-void handle_editPlayerMenu_choice(int choice, Game* game, bool* back, bool used_cards[15][4]) {
+void handle_editPlayerMenu_choice(int choice, Game* game, bool* back, bool used_cards[NUM_RANKS][NUM_SUITS]) {
     int choice_player;
 
     switch (choice) {
@@ -247,7 +247,7 @@ void deal_cards(Player* player, bool used_cards[NUM_RANKS][NUM_SUITS]) {
 }
 
 
-void deal_random_cards_all(Player* player, bool used_cards[15][4]) {
+void deal_random_cards_all(Player* player, bool used_cards[NUM_RANKS][NUM_SUITS]) {
     // Инициализируем колоду
     Card full_deck[52];
     create_deck(full_deck, used_cards);

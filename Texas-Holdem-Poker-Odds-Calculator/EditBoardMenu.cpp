@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "Functions.h"
 
-void print_editBoardMenu(Game* game, bool used_cards[15][4]) {
+void print_editBoardMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
     int choice;
     bool exit_editor = false;
     int num_cards;
@@ -72,7 +72,7 @@ void print_editBoardMenu(Game* game, bool used_cards[15][4]) {
     }
 }
 
-void handle_editBoardMenu_choice(int choice, Game* game, bool* exit_editor, bool used_cards[15][4], bool* deal_cards, bool* debugging_mode) {
+void handle_editBoardMenu_choice(int choice, Game* game, bool* exit_editor, bool used_cards[NUM_RANKS][NUM_SUITS], bool* deal_cards, bool* debugging_mode) {
     int num_cards;
 
     switch (choice) {
@@ -99,9 +99,7 @@ void handle_editBoardMenu_choice(int choice, Game* game, bool* exit_editor, bool
             printf("     Редактирование Turn (четвёртая карта)     \n");
             printf("-----------------------------------------------\n");
             *deal_cards = deal_board_cards(game, used_cards, 3, 1);
-            /*if (*deal_cards == true) {
-                game->set_phase("turn");
-            }*/
+     
         }
         break;
 

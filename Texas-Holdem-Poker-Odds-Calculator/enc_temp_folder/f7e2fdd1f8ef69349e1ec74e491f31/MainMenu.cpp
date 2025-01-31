@@ -52,7 +52,7 @@ void handle_mainMenu_choice(Game* game, Settings* settings, PokerCombination* re
         break;
     case 4:
         printf("Status: Alpha Stable\n");
-        printf("Version program: 2.9");
+        printf("Version program: 2.8\n");
         printf("Author: Saifect@mail.ru\n");
         press_any_key_to_continue();
         break;

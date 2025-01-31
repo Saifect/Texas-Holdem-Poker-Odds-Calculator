@@ -382,12 +382,7 @@ Settings::Settings()
     tie(false),
     show(false),
     current_winner(-1),
-    debug_player_index(-1),
-    max_players(10),          // Пример значения по умолчанию
-    min_simulations(1000),    // Пример значения по умолчанию
-    max_simulations(1000000), // Пример значения по умолчанию
-    default_simulations(250000) // Пример значения по умолчанию
-{}
+    debug_player_index(-1) {}
 
 // Геттеры и сеттеры
 
@@ -447,40 +442,6 @@ void Settings::set_debug_player_index(int index) {
     debug_player_index = index;
 }
 
-// Геттеры и сеттеры для новых полей
-
-int Settings::get_max_players() const {
-    return max_players;
-}
-
-void Settings::set_max_players(int max) {
-    max_players = max;
-}
-
-int Settings::get_min_simulations() const {
-    return min_simulations;
-}
-
-void Settings::set_min_simulations(int min) {
-    min_simulations = min;
-}
-
-int Settings::get_max_simulations() const {
-    return max_simulations;
-}
-
-void Settings::set_max_simulations(int max) {
-    max_simulations = max;
-}
-
-int Settings::get_default_simulations() const {
-    return default_simulations;
-}
-
-void Settings::set_default_simulations(int default_sim) {
-    default_simulations = default_sim;
-}
-
 // Метод для инициализации настроек
 void Settings::initialize() {
     ties_visible_mode = false;
@@ -490,8 +451,4 @@ void Settings::initialize() {
     show = false;
     current_winner = -1;
     debug_player_index = -1;
-    max_players = 10;        
-    min_simulations = 1000;
-    max_simulations = 1000000;
-    default_simulations = 250000;
 }

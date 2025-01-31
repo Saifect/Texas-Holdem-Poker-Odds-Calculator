@@ -202,11 +202,6 @@ private:
     int current_winner;           // Текущий победитель
     int debug_player_index;       // Индекс игрока для отладки
 
-    int max_players;              // Максимальное количество игроков
-    int min_simulations;          // Минимальное количество симуляций
-    int max_simulations;          // Максимальное количество симуляций
-    int default_simulations;      // Количество симуляций по умолчанию
-
 public:
     // Конструктор по умолчанию
     Settings();
@@ -233,19 +228,8 @@ public:
     int get_debug_player_index() const;
     void set_debug_player_index(int index);
 
-    // Геттеры и сеттеры для новых полей
-    int get_max_players() const;
-    void set_max_players(int max);
-
-    int get_min_simulations() const;
-    void set_min_simulations(int min);
-
-    int get_max_simulations() const;
-    void set_max_simulations(int max);
-
-    int get_default_simulations() const;
-    void set_default_simulations(int default_sim);
-
-    // Метод для инициализации настроек
+    // Метод для инициализации настроек (если нужно)
     void initialize();
 };
+
+

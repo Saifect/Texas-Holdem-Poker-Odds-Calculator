@@ -10,6 +10,8 @@ int main() {
     /// Инициализация игры ///
     Game game;
     initialize_game(&game, 12);
+    Settings settings;
+    initialization_debug_settings(&settings); // Инициализация настроек
 
     PokerCombination result_player[MAX_PLAYERS];
 
@@ -24,7 +26,7 @@ int main() {
 
     while (true) {
         int choice;
-        print_mainMenu(&game, result_player, &choice);
+        print_mainMenu(&game, &settings, result_player, &choice);
         clearConsole();
     }
 
@@ -63,6 +65,14 @@ void initialize_game(Game* game, int num_players) {
 
     // Устанавливаем количество игроков
     game->set_num_players(num_players); // Используем сеттер для количества игроков
+}
+
+void initialization_debug_settings(Settings* settings) {
+    settings->set_show(false);
+    settings->set_current_winner(-1);
+    settings->set_ties_visible_mode(false);
+    settings->set_wins_visible_mode(false);
+    settings->set_simulations_visible_mode(false);
 }
 
 // Инициализация руки

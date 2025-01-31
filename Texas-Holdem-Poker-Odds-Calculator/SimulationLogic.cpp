@@ -417,7 +417,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
 }
 
 
-void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int choice_numSimulations, Settings_debugging_mode* settings) {
+void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int choice_numSimulations, Settings* settings) {
    
     // Сброс статистики
     for (int i = 0; i < game->get_current_players(); i++) {
@@ -510,7 +510,7 @@ void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], 
         for (int j = 0; j < game->get_current_players(); j++) {
             if (tie && compare_hands(player_hands[j], player_hands[best_player]) == 0) {
                 game->get_player(j).set_ties(game->get_player(j).get_ties() + 1);
-                settings->tie = true;
+                settings->set_tie(true);
             }
             else if (j == best_player) {
                 game->get_player(j).set_wins(game->get_player(j).get_wins() + 1);
@@ -556,10 +556,10 @@ void debug_board(const Board& board) {
         }
     }
 }
-void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* settings, Board simulated_board, PokerCombination* player_hands, int current_simulation, bool tie, int best_player) {
+void calculate_probabilities_debugging(Game* game, Settings* settings, Board simulated_board, PokerCombination* player_hands, int current_simulation, bool tie, int best_player) {
     // Отображение победителя или ничьей
-    if (settings->wins_visible_mode == true) {
-        if (best_player + 1 == settings->current_winner) {
+    if (settings->get_wins_visible_mode() == true) {
+        if (best_player + 1 == settings->get_current_winner()) {
             printf("Симуляция %d:\n", current_simulation + 1);
             printf("Карты на столе: ");
             for (int j = 0; j < 5; j++) {
@@ -589,9 +589,9 @@ void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* sett
         
         }
     }
-    else if (settings->ties_visible_mode == true) {
-        if (settings->tie == true) {
-            settings->tie = false;
+    else if (settings->get_ties_visible_mode() == true) {
+        if (settings->get_tie() == true) {
+            settings->set_tie(false);
             printf("Симуляция %d:\n", current_simulation + 1);
             printf("Карты на столе: ");
             for (int j = 0; j < 5; j++) {
@@ -614,7 +614,7 @@ void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* sett
             printf("\n");
         }
     }
-    else if (settings->simulations_visible_mode = false) {
+    else if (settings->get_simulations_visible_mode() == true) {
         printf("Симуляция %d:\n", current_simulation + 1);
         printf("Карты на столе: ");
         for (int j = 0; j < 5; j++) {
@@ -646,58 +646,6 @@ void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* sett
 
   
 }
-
-
-//void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* settings, Board simulated_board, PokerCombination* player_hands, int current_simulation, bool tie, int best_player) {
-//    // Отображение победителя или ничьей
-//    printf("Симуляция %d:\n", current_simulation + 1);
-//
-//    // Вывод карт на столе
-//    printf("Карты на столе: ");
-//    for (int j = 0; j < 5; j++) {
-//        const Card& card = simulated_board.get_card(j);
-//        if (card.is_valid()) {
-//            printf("%d%s ",
-//                card.get_rank() + 2,
-//                card.get_suit() == HEARTS ? " Черви" :
-//                card.get_suit() == DIAMONDS ? " Бубны" :
-//                card.get_suit() == CLUBS ? " Трефы" :
-//                card.get_suit() == SPADES ? " Пики" : "?");
-//        }
-//        else {
-//            printf("НЕИЗВЕСТНО ");
-//        }
-//    }
-//    printf("\n");
-//
-//    // Вывод информации о комбинациях игроков
-//    for (int j = 0; j < game->get_current_players(); j++) {
-//        const Player& player = game->get_player(j);
-//        printf("Игрок %d:\n", j + 1);
-//        print_hand(player_hands[j]); // Используем вашу функцию print_hand для отображения комбинации
-//    }
-//
-//    // Определение результата симуляции
-//    if (settings->wins_visible_mode && best_player + 1 == settings->current_winner) {
-//        printf("Игрок %d победил.\n", best_player + 1);
-//    }
-//    else if (settings->ties_visible_mode && tie) {
-//        printf("Ничья между игроками.\n");
-//        for (int j = 0; j < game->get_current_players(); j++) {
-//            printf("Игрок %d:\n", j + 1);
-//            print_hand(player_hands[j]); // Отображаем комбинации всех участников ничьей
-//        }
-//    }
-//
-//    // Дополнительная отладочная информация
-//    if (settings->debug_player_index >= 0 && settings->debug_player_index < game->get_current_players()) {
-//        printf("Подробная информация о комбинации игрока %d:\n", settings->debug_player_index + 1);
-//        print_hand(player_hands[settings->debug_player_index]);
-//    }
-//
-//    printf("\n");
-//}
-
 
 // Сравнивает комбинации всех игроков
 void compare_all_hands(Game* game, PokerCombination hands[]) {

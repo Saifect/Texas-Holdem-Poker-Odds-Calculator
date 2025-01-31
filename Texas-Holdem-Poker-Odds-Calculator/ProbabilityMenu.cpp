@@ -1,22 +1,10 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #include "Functions.h"
 
-
-void initialization_debug_settings(Settings_debugging_mode* settings) {
-    settings->show = false;
-    settings->current_winner = -1;
-    settings->ties_visible_mode = false;
-    settings->wins_visible_mode = false;
-    settings->simulations_visible_mode = false;
-}
-
-void print_probabilityMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
+void print_probabilityMenu(Game* game, Settings* settings,bool used_cards[NUM_RANKS][NUM_SUITS]) {
     int num_simulations = DEFAULT_SIMULATIONS;
     int probabilityMenu_choice = 0;
     bool exit = false;
-
-    Settings_debugging_mode settings;
-    initialization_debug_settings(&settings);
 
     while (exit == false) {
 
@@ -50,15 +38,14 @@ void print_probabilityMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
             print_board_cards(&game->get_board());
         }
         printf("Текущая стадия игры (улица): %s\n", game->get_phase());
-        SetConsoleOutputCP(65001); // Устанавливаем UTF-8, чтобы не было проблем с кодировкой
-        // Рассчитываем примерное время выполнения симуляций
+
         double estimated_time = (num_simulations * 1.75) / 250000.0;
         printf("================================================\n");
-        printf("             Настройка симмуляций               \n");
+        printf("             Настройка симуляций               \n");
         printf("================================================\n");
         printf("Текущее количество симуляций: %d\n", num_simulations);
         printf("Будет считаться примерно %.2f секунд(ы)\n", estimated_time); // Вывод времени
-        if (settings.wins_visible_mode == false && settings.ties_visible_mode == false) {
+        if (settings->get_wins_visible_mode() == false && settings->get_ties_visible_mode() == false && settings->get_simulations_visible_mode() == false) {
             printf("Режим отладки: Выключен\n");
         }
         else {
@@ -69,14 +56,14 @@ void print_probabilityMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
         printf("================================================\n");
         printf("1. Расчёт по методу симуляций Монте-Карло\n");
         printf("2. Изменить количество симуляций\n");
-        if (settings.show == true) {
+        if (settings->get_show() == true) {
             printf("3. Скрыть элементы отладки\n");
             printf("4. %s отображение побед для игрока (отладка)\n",
-                settings.wins_visible_mode ? "Выключить" : "Включить");
+                settings->get_wins_visible_mode() ? "Выключить" : "Включить");
             printf("5. %s отображение ничей (отладка)\n",
-                settings.ties_visible_mode ? "Выключить" : "Включить");
+                settings->get_ties_visible_mode() ? "Выключить" : "Включить");
             printf("6. %s отображение всех симуляций (отладка)\n",
-                settings.simulations_visible_mode ? "Выключить" : "Включить");
+                settings->get_simulations_visible_mode() ? "Выключить" : "Включить");
             printf("7. Вывести массив учтённых карт (отладка)\n");
         }
         else {
@@ -88,11 +75,11 @@ void print_probabilityMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
         printf("Ваш выбор: ");
 
         get_user_choice(&probabilityMenu_choice);
-        handle_probabilityMenu_choice(probabilityMenu_choice, game, &exit, used_cards, &num_simulations, &settings);
+        handle_probabilityMenu_choice(probabilityMenu_choice, game, &exit, used_cards, &num_simulations, settings);
     }
 }
 
-void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used_cards[NUM_RANKS][NUM_SUITS], int* num_simulations, Settings_debugging_mode* settings) {
+void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used_cards[NUM_RANKS][NUM_SUITS], int* num_simulations, Settings* settings) {
     bool debugging_mode = false;
 
     int choice_user;
@@ -124,7 +111,7 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
         }
         else if (*num_simulations >= 10 && *num_simulations <= 20000000) {
 
-            if (settings->ties_visible_mode == true || settings->wins_visible_mode == true) {
+            if (settings->get_ties_visible_mode() == true || settings->get_wins_visible_mode() == true) {
                 debugging_mode = true;
             }
             else {
@@ -211,14 +198,14 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
 
     case 3:
 
-        settings->show = !(settings->show);
+        settings->set_show(!settings->get_show());
         clearConsole();
 
         break;
 
     case 4:
-        if (settings->wins_visible_mode == true) {
-            settings->wins_visible_mode = false;
+        if (settings->get_wins_visible_mode() == true) {
+            settings->set_wins_visible_mode(false);
             clearConsole();
         }
         else {
@@ -237,10 +224,10 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
                 break;
             }
             else {
-                settings->current_winner = choice_user;
-                settings->wins_visible_mode = !(settings->wins_visible_mode);
-                if (settings->ties_visible_mode == true) {
-                    settings->ties_visible_mode = false;
+                settings->set_current_winner(choice_user);
+                settings->set_wins_visible_mode(!settings->get_wins_visible_mode());
+                if (settings->get_ties_visible_mode() == true) {
+                    settings->set_ties_visible_mode(false);
                 }
                 clearConsole();
             }
@@ -249,12 +236,12 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
 
     case 5:
 
-        settings->ties_visible_mode = !(settings->ties_visible_mode);
-        if (settings->wins_visible_mode == true) {
-            settings->wins_visible_mode = false;
+        settings->set_ties_visible_mode(!settings->get_ties_visible_mode());
+        if (settings->get_wins_visible_mode() == true) {
+            settings->set_wins_visible_mode(false);
         }
-        if (settings->simulations_visible_mode == true) {
-            settings->simulations_visible_mode = false;
+        if (settings->get_simulations_visible_mode() == true) {
+            settings->set_simulations_visible_mode(false);
         }
 
         clearConsole();
@@ -262,12 +249,12 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
 
     case 6:
 
-        settings->simulations_visible_mode = !(settings->simulations_visible_mode);
-        if (settings->wins_visible_mode == true) {
-            settings->wins_visible_mode = false;
+        settings->set_simulations_visible_mode(!settings->get_simulations_visible_mode());
+        if (settings->get_wins_visible_mode() == true) {
+            settings->set_wins_visible_mode(false);
         }
-        if (settings->ties_visible_mode == true) {
-            settings->ties_visible_mode = false;
+        if (settings->get_ties_visible_mode() == true) {
+            settings->set_ties_visible_mode(false);
         }
 
         clearConsole();
