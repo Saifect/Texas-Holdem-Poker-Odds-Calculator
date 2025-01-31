@@ -216,7 +216,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
 
     // Собираем все карты
     int total_cards = 2 + board.get_num_cards();
-    if (total_cards > 7) return result; // Недопустимое количество карт
+    if (total_cards > 7) return result;
     all_cards[0] = hand.get_card(0);
     all_cards[1] = hand.get_card(1);
     for (int i = 0; i < board.get_num_cards(); i++) {
@@ -240,7 +240,7 @@ PokerCombination determine_hand(Hand hand, Board board) {
         if (card_count[rank] > 0) {
             consecutive++;
             if (consecutive >= 5) {
-                straight_high_card = static_cast<Rank>(rank + 4); // Высшая карта стрита
+                straight_high_card = static_cast<Rank>(rank + 4);
                 break;
             }
         }
@@ -248,9 +248,13 @@ PokerCombination determine_hand(Hand hand, Board board) {
             consecutive = 0;
         }
     }
-    // Проверка на "круговой" стрит (A, 2, 3, 4, 5)
-    if (card_count[ACE] && card_count[TWO] && card_count[THREE] && card_count[FOUR] && card_count[FIVE]) {
-        straight_high_card = FIVE;
+
+    // Проверка на "круговой" стрит (A-2-3-4-5) только если стрит не найден чтобы не перезаписывал страшую карту
+    if (straight_high_card == NONE_RANK) {
+        if (card_count[ACE] > 0 && card_count[TWO] > 0 && card_count[THREE] > 0 &&
+            card_count[FOUR] > 0 && card_count[FIVE] > 0) {
+            straight_high_card = FIVE;
+        }
     }
 
     // Определение флеша
@@ -306,7 +310,6 @@ PokerCombination determine_hand(Hand hand, Board board) {
     }
 
     if (straight_high_card != NONE_RANK) {
-        // Стрит
         result.hand_rank = STRAIGHT;
         result.high_card = straight_high_card;
         return result;
@@ -415,14 +418,13 @@ PokerCombination determine_hand(Hand hand, Board board) {
 
 
 void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int choice_numSimulations, Settings_debugging_mode* settings) {
+   
     // Сброс статистики
     for (int i = 0; i < game->get_current_players(); i++) {
         game->get_player(i).set_wins(0);
         game->get_player(i).set_ties(0);
         game->get_player(i).set_losses(0);
     }
-
-
 
     // Основной цикл симуляции
     for (int sim = 0; sim < choice_numSimulations; sim++) {
@@ -527,14 +529,18 @@ void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], 
     // Вывод результатов
     double total_simulations = (double)choice_numSimulations;
 
-
-
-
     for (int i = 0; i < game->get_current_players(); i++) {
-        printf("------------------\n   Игрок %d\n------------------\n", i + 1);
-        printf("Победы: %.2f%%\n", (game->get_player(i).get_wins() / total_simulations) * 100);
-        printf("Поражения: %.2f%%\n", (game->get_player(i).get_losses() / total_simulations) * 100);
-        printf("Ничьи: %.2f%%\n", (game->get_player(i).get_ties() / total_simulations) * 100);
+        // Получаем карты игрока
+        const Card& card1 = game->get_player(i).get_hand().get_const_card(0);
+        const Card& card2 = game->get_player(i).get_hand().get_const_card(1);
+
+        if (card1.get_rank() != NONE_RANK && card2.get_rank() != NONE_RANK) {
+            printf("------------------\n    Игрок %d\n------------------\n", i + 1);
+            printf("Победы: %.2f%%\n", (game->get_player(i).get_wins() / total_simulations) * 100);
+            printf("Поражения: %.2f%%\n", (game->get_player(i).get_losses() / total_simulations) * 100);
+            printf("Ничьи: %.2f%%\n", (game->get_player(i).get_ties() / total_simulations) * 100);
+        
+        }
     }
 }
 
@@ -561,10 +567,10 @@ void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* sett
                 if (card.is_valid()) {
                     printf("%d%s ",
                         card.get_rank() + 2,
-                        card.get_suit() == HEARTS ? " Черви" :
-                        card.get_suit() == DIAMONDS ? " Бубны" :
-                        card.get_suit() == CLUBS ? " Трефы" :
-                        card.get_suit() == SPADES ? " Пики" : "?");
+                        card.get_suit() == HEARTS ? "Черви" :
+                        card.get_suit() == DIAMONDS ? "Бубны" :
+                        card.get_suit() == CLUBS ? "Трефы" :
+                        card.get_suit() == SPADES ? "Пики" : "?");
                 }
                 else {
                     printf("НЕИЗВЕСТНО ");
@@ -584,17 +590,17 @@ void calculate_probabilities_debugging(Game* game, Settings_debugging_mode* sett
         }
     }
     else if (settings->ties_visible_mode == true) {
-        if (settings->tie = true) {
+        if (settings->tie == true) {
             settings->tie = false;
             printf("Симуляция %d:\n", current_simulation + 1);
             printf("Карты на столе: ");
             for (int j = 0; j < 5; j++) {
                 printf("%d%s ",
                     simulated_board.get_card(j).get_rank() + 2,
-                    simulated_board.get_card(j).get_suit() == HEARTS ? " Черви" :
-                    simulated_board.get_card(j).get_suit() == DIAMONDS ? " Бубны" :
-                    simulated_board.get_card(j).get_suit() == CLUBS ? " Трефы" :
-                    simulated_board.get_card(j).get_suit() == SPADES ? " Пики" : "?");
+                    simulated_board.get_card(j).get_suit() == HEARTS ? "Черви" :
+                    simulated_board.get_card(j).get_suit() == DIAMONDS ? "Бубны" :
+                    simulated_board.get_card(j).get_suit() == CLUBS ? "Трефы" :
+                    simulated_board.get_card(j).get_suit() == SPADES ? "Пики" : "?");
             }
             printf("\n");
 

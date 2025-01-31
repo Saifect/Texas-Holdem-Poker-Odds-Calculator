@@ -11,17 +11,16 @@ int main() {
     Game game;
     initialize_game(&game, 12);
 
-    // Используем геттер для доступа к количеству игроков
-    PokerCombination* result_player = (PokerCombination*)malloc(game.get_num_players() * sizeof(PokerCombination));
+    PokerCombination result_player[MAX_PLAYERS];
 
     /// Установка кодировок 
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(65001);
 
     // Для православного языка
     setlocale(LC_ALL, "Rus");
     clearConsole();
-
 
     while (true) {
         int choice;
@@ -29,7 +28,6 @@ int main() {
         clearConsole();
     }
 
-    free(result_player);
     return 0;
 }
 

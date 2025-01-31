@@ -77,7 +77,9 @@ void handle_editBoardMenu_choice(int choice, Game* game, bool* exit_editor, bool
 
     switch (choice) {
     case 1:
-        printf("Редактирование Flop (первая, вторая и третья карты на столе)\n");
+        printf("-----------------------------------------------\n");
+        printf("     Редактирование Flop (1-3 карты стола)     \n");
+        printf("-----------------------------------------------\n");
         *deal_cards = deal_board_cards(game, used_cards, 0, 3);  // Ввод трёх карт на флоп
 
         if (*deal_cards == true) {
@@ -92,7 +94,10 @@ void handle_editBoardMenu_choice(int choice, Game* game, bool* exit_editor, bool
             press_any_key_to_continue();
         }
         else {
-            printf("Редактирование Turn (четвёртая карта)\n");
+        
+            printf("-----------------------------------------------\n");
+            printf("     Редактирование Turn (четвёртая карта)     \n");
+            printf("-----------------------------------------------\n");
             *deal_cards = deal_board_cards(game, used_cards, 3, 1);
             /*if (*deal_cards == true) {
                 game->set_phase("turn");
@@ -106,7 +111,10 @@ void handle_editBoardMenu_choice(int choice, Game* game, bool* exit_editor, bool
             press_any_key_to_continue();
         }
         else {
-            printf("Редактирование River (пятая карта)\n");
+     
+            printf("-----------------------------------------------\n");
+            printf("      Редактирование River (пятая карта)       \n");
+            printf("-----------------------------------------------\n");
             *deal_cards = deal_board_cards(game, used_cards, 4, 1);
             if (*deal_cards == true) {
                 game->set_phase("river");
@@ -243,8 +251,19 @@ bool deal_board_cards(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int sta
         return false;
     }
 
+    // Освобождаем карты, которые будут перезаписаны
+    for (int i = 0; i < num_cards; i++) {
+        if (start_index + i < initial_num_cards) {
+            // Получаем текущую карту на столе
+            Card old_card = game->get_board().get_card(start_index + i);
+            // Освобождаем её в массиве used_cards
+            used_cards[old_card.get_rank()][old_card.get_suit()] = false;
+        }
+    }
+
     for (int i = 0; i < num_cards; i++) {
         do {
+            printf("(11 - Валет, 12 - Дама, 13 - Король, 14 - Туз)\n");
             printf("Введите ранг карты %d (2-14) или 0 для выхода: ", start_index + i + 1);
             rank_choice = (int)scanf_secure("int");
             if (rank_choice == 0) {
@@ -255,8 +274,8 @@ bool deal_board_cards(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int sta
                 printf("Неверный ранг карты! Попробуйте снова.\n");
                 continue;
             }
-
-            printf("Введите масть карты %d (1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики) или 0 для выхода: ", start_index + i + 1);
+            printf("(1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики)\n");
+            printf("Введите масть карты %d или 0 для выхода: ", start_index + i + 1);
             suit_choice = (int)scanf_secure("int");
             if (suit_choice == 0) {
                 clear_board(game, used_cards); // Отмена изменений
@@ -283,6 +302,9 @@ bool deal_board_cards(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int sta
                     current_num_cards++;
                 }
                 used_cards[rank_choice - 2][suit_choice - 1] = true;
+                if (i + 1 == num_cards) {
+                    press_any_key_to_continue();
+                }
                 break;
             }
         } while (true);
@@ -305,7 +327,6 @@ bool deal_board_cards(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int sta
 
     return true;
 }
-
 
 void deal_board_random_cards(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int start_index, int num_cards) {
     int rank_choice, suit_choice;

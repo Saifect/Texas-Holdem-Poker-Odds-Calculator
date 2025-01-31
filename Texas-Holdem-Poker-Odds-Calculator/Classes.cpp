@@ -61,7 +61,6 @@ void Card::release_card(bool used_cards[NUM_RANKS][NUM_SUITS]) {
 void Card::init_card(Suit suit, Rank rank, bool used_cards[NUM_RANKS][NUM_SUITS]) {
     // Проверяем, используется ли карта
     if (used_cards[rank][suit]) {
-        fprintf(stderr, "Ошибка: Карта %d %d уже используется.\n", rank, suit);
         return;
     }
 
@@ -283,8 +282,11 @@ void Board::add_card(const Card& card, bool used_cards[NUM_RANKS][NUM_SUITS]) {
         }
 
         cards[num_cards] = card;
+        printf("-----------------------------------------------\n");
         printf("Добавлена карта: %s %s на позицию %d\n",
-            card.get_rank_name(), card.get_suit_name(), num_cards);
+            card.get_rank_name(), card.get_suit_name(), num_cards + 1);
+        printf("-----------------------------------------------\n");
+
         used_cards[card.get_rank()][card.get_suit()] = true;
         num_cards++;
     }

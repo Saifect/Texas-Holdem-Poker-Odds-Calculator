@@ -1,102 +1,91 @@
-#define _CRT_SECURE_NO_WARNINGS
+п»ї#define _CRT_SECURE_NO_WARNINGS
 #include "Functions.h"
 
 
+void initialization_debug_settings(Settings_debugging_mode* settings) {
+    settings->show = false;
+    settings->current_winner = -1;
+    settings->ties_visible_mode = false;
+    settings->wins_visible_mode = false;
+    settings->simulations_visible_mode = false;
+}
+
 void print_probabilityMenu(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS]) {
-    int num_simulations = 250000;
+    int num_simulations = DEFAULT_SIMULATIONS;
     int probabilityMenu_choice = 0;
     bool exit = false;
 
     Settings_debugging_mode settings;
-    settings.show = false;
-    settings.current_winner = -1;
-    settings.ties_visible_mode = false;
-    settings.wins_visible_mode = false;
-    settings.simulations_visible_mode = false;
+    initialization_debug_settings(&settings);
 
     while (exit == false) {
 
         printf("\n");
         printf("================================================\n");
-        printf("             Текущая информация                 \n");
+        printf("             РўРµРєСѓС‰Р°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ                 \n");
         printf("================================================\n");
 
         for (int i = 0; i < game->get_current_players(); i++) {
-            // Проверяем, были ли введены карты игрока
+            // РџСЂРѕРІРµСЂСЏРµРј, Р±С‹Р»Рё Р»Рё РІРІРµРґРµРЅС‹ РєР°СЂС‚С‹ РёРіСЂРѕРєР°
             const Card& card1 = game->get_player(i).get_hand().get_const_card(0);
             const Card& card2 = game->get_player(i).get_hand().get_const_card(1);
 
             if (card1.get_rank() != NONE_RANK && card2.get_rank() != NONE_RANK) {
-                printf("Карты игрока %d: %s %s и %s %s\n", i + 1,
+                printf("РљР°СЂС‚С‹ РёРіСЂРѕРєР° %d: %s %s Рё %s %s\n", i + 1,
                     card1.get_rank_name(),
                     card1.get_suit_name(),
                     card2.get_rank_name(),
                     card2.get_suit_name());
             }
             else {
-                printf("Карты игрока %d: не заданы\n", i + 1);
+                printf("РљР°СЂС‚С‹ РёРіСЂРѕРєР° %d: РЅРµ Р·Р°РґР°РЅС‹\n", i + 1);
             }
         }
 
-
-        // Карты на столе
+        // РљР°СЂС‚С‹ РЅР° СЃС‚РѕР»Рµ
         if (strcmp(game->get_phase(), "preflop") == 0) {
-            printf("Карты на столе: отсутствуют\n");
+            printf("РљР°СЂС‚С‹ РЅР° СЃС‚РѕР»Рµ: РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‚\n");
         }
         else {
             print_board_cards(&game->get_board());
         }
-
-        printf("Текущая стадия игры (улица): %s\n", game->get_phase());
-        printf("Текущее количество симуляций: %d\n", num_simulations);
+        printf("РўРµРєСѓС‰Р°СЏ СЃС‚Р°РґРёСЏ РёРіСЂС‹ (СѓР»РёС†Р°): %s\n", game->get_phase());
+        SetConsoleOutputCP(65001); // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј UTF-8, С‡С‚РѕР±С‹ РЅРµ Р±С‹Р»Рѕ РїСЂРѕР±Р»РµРј СЃ РєРѕРґРёСЂРѕРІРєРѕР№
+        // Р Р°СЃСЃС‡РёС‚С‹РІР°РµРј РїСЂРёРјРµСЂРЅРѕРµ РІСЂРµРјСЏ РІС‹РїРѕР»РЅРµРЅРёСЏ СЃРёРјСѓР»СЏС†РёР№
+        double estimated_time = (num_simulations * 1.75) / 250000.0;
+        printf("================================================\n");
+        printf("             РќР°СЃС‚СЂРѕР№РєР° СЃРёРјРјСѓР»СЏС†РёР№               \n");
+        printf("================================================\n");
+        printf("РўРµРєСѓС‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРёРјСѓР»СЏС†РёР№: %d\n", num_simulations);
+        printf("Р‘СѓРґРµС‚ СЃС‡РёС‚Р°С‚СЊСЃСЏ РїСЂРёРјРµСЂРЅРѕ %.2f СЃРµРєСѓРЅРґ(С‹)\n", estimated_time); // Р’С‹РІРѕРґ РІСЂРµРјРµРЅРё
         if (settings.wins_visible_mode == false && settings.ties_visible_mode == false) {
-            printf("Режим отладки: Выключен\n");
+            printf("Р РµР¶РёРј РѕС‚Р»Р°РґРєРё: Р’С‹РєР»СЋС‡РµРЅ\n");
         }
         else {
-            printf("Режим отладки: Включен\n");
+            printf("Р РµР¶РёРј РѕС‚Р»Р°РґРєРё: Р’РєР»СЋС‡РµРЅ\n");
         }
         printf("================================================\n");
-        printf("       Редактор вычисления вероятностей         \n");
+        printf("       Р РµРґР°РєС‚РѕСЂ РІС‹С‡РёСЃР»РµРЅРёСЏ РІРµСЂРѕСЏС‚РЅРѕСЃС‚РµР№         \n");
         printf("================================================\n");
-        printf("1. Расчёт по методу симуляций Монте-Карло\n");
-        printf("2. Изменить количество симуляций\n");
+        printf("1. Р Р°СЃС‡С‘С‚ РїРѕ РјРµС‚РѕРґСѓ СЃРёРјСѓР»СЏС†РёР№ РњРѕРЅС‚Рµ-РљР°СЂР»Рѕ\n");
+        printf("2. РР·РјРµРЅРёС‚СЊ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРёРјСѓР»СЏС†РёР№\n");
         if (settings.show == true) {
-            printf("3. Скрыть элементы отладки\n");
-            if (settings.wins_visible_mode == false) {
-                printf("4. Вкючить отображение побед для игрока (отладка)\n");
-            }
-            if (settings.wins_visible_mode == true) {
-                printf("4. Выключить отоброжение побед для игрока (отладка)\n");
-            }
-            if (settings.ties_visible_mode == false) {
-                printf("5. Включить отоброжение ничей (отладка)\n");
-            }
-            if (settings.ties_visible_mode == true) {
-                printf("5. Выключить отоброжение ничей (отладка)\n");
-            }
-
-            if (settings.simulations_visible_mode == false) {
-                printf("6. Включить отоброжение всех симмуляций (отладка)\n");
-            }
-            if (settings.simulations_visible_mode == true) {
-                printf("6. Выключить отоброжение всех симмуляций (отладка)\n");
-            }
-
-       
-            printf("7. Вывести массив учтённых карт (отладка)\n");
-            
-
-
-
-
+            printf("3. РЎРєСЂС‹С‚СЊ СЌР»РµРјРµРЅС‚С‹ РѕС‚Р»Р°РґРєРё\n");
+            printf("4. %s РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ РїРѕР±РµРґ РґР»СЏ РёРіСЂРѕРєР° (РѕС‚Р»Р°РґРєР°)\n",
+                settings.wins_visible_mode ? "Р’С‹РєР»СЋС‡РёС‚СЊ" : "Р’РєР»СЋС‡РёС‚СЊ");
+            printf("5. %s РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ РЅРёС‡РµР№ (РѕС‚Р»Р°РґРєР°)\n",
+                settings.ties_visible_mode ? "Р’С‹РєР»СЋС‡РёС‚СЊ" : "Р’РєР»СЋС‡РёС‚СЊ");
+            printf("6. %s РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ РІСЃРµС… СЃРёРјСѓР»СЏС†РёР№ (РѕС‚Р»Р°РґРєР°)\n",
+                settings.simulations_visible_mode ? "Р’С‹РєР»СЋС‡РёС‚СЊ" : "Р’РєР»СЋС‡РёС‚СЊ");
+            printf("7. Р’С‹РІРµСЃС‚Рё РјР°СЃСЃРёРІ СѓС‡С‚С‘РЅРЅС‹С… РєР°СЂС‚ (РѕС‚Р»Р°РґРєР°)\n");
         }
-        else if (settings.show == false) {
-            printf("3. Показать элементы отладки\n");
+        else {
+            printf("3. РџРѕРєР°Р·Р°С‚СЊ СЌР»РµРјРµРЅС‚С‹ РѕС‚Р»Р°РґРєРё\n");
         }
         printf("-----------------------------------------------\n");
-        printf("0. Назад\n");
+        printf("0. РќР°Р·Р°Рґ\n");
         printf("================================================\n");
-        printf("Ваш выбор: ");
+        printf("Р’Р°С€ РІС‹Р±РѕСЂ: ");
 
         get_user_choice(&probabilityMenu_choice);
         handle_probabilityMenu_choice(probabilityMenu_choice, game, &exit, used_cards, &num_simulations, &settings);
@@ -117,7 +106,7 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
 
     case 1:
         for (int i = 0; i < game->get_current_players(); i++) {
-            // Проверяем есть ли карты у игрока
+            // РџСЂРѕРІРµСЂСЏРµРј РµСЃС‚СЊ Р»Рё РєР°СЂС‚С‹ Сѓ РёРіСЂРѕРєР°
             if (game->get_player(i).get_hand().get_const_card(0).get_rank() != NONE_RANK && game->get_player(i).get_hand().get_const_card(1).get_rank() != NONE_RANK) {
                 players_with_cards++;
             }
@@ -127,14 +116,13 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
             }
         }
 
-        // Проверяем результат
+        // РџСЂРѕРІРµСЂСЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚
         if (players_with_cards < 2) {
-            printf("Нужно хотя бы 2 заданные руки для анализа вероятности.\n");
+            printf("РљР°СЂС‚С‹ РґР»СЏ С…РѕС‚СЏ-Р±С‹ 2-x РёРіСЂРѕРєРѕРІ РЅРµ Р·Р°РґР°РЅС‹.\n");
             press_any_key_to_continue();
             clearConsole();
         }
         else if (*num_simulations >= 10 && *num_simulations <= 20000000) {
-
 
             if (settings->ties_visible_mode == true || settings->wins_visible_mode == true) {
                 debugging_mode = true;
@@ -144,36 +132,36 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
             }
             if (debugging_mode == true && *num_simulations > 5000) {
                 if (*num_simulations > 3000 && *num_simulations < 10000) {
-                    printf("Использовать режим отладки с количеством симуляций < 3000 не рекомендуется\nВы уверены?\n");
+                    printf("РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ СЂРµР¶РёРј РѕС‚Р»Р°РґРєРё СЃ РєРѕР»РёС‡РµСЃС‚РІРѕРј СЃРёРјСѓР»СЏС†РёР№ < 3000 РЅРµ СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ\nР’С‹ СѓРІРµСЂРµРЅС‹?\n");
                 }
                 if (*num_simulations > 10000 && *num_simulations < 50000) {
-                    printf("Оу, это будет долговато.\nДля режима отладки рекомендуется < 3000 симуляций, вы уверены?\n");
+                    printf("РћСѓ, СЌС‚Рѕ Р±СѓРґРµС‚ РґРѕР»РіРѕРІР°С‚Рѕ.\nР”Р»СЏ СЂРµР¶РёРјР° РѕС‚Р»Р°РґРєРё СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ < 3000 СЃРёРјСѓР»СЏС†РёР№, РІС‹ СѓРІРµСЂРµРЅС‹?\n");
                 }
                 if (*num_simulations > 50000 && *num_simulations < 100000) {
-                    printf("Это может быть очень долго.\nДля режима отладки рекомендуется < 3000 симуляций, вы уверены?\n");
+                    printf("Р­С‚Рѕ РјРѕР¶РµС‚ Р±С‹С‚СЊ РѕС‡РµРЅСЊ РґРѕР»РіРѕ.\nР”Р»СЏ СЂРµР¶РёРјР° РѕС‚Р»Р°РґРєРё СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ < 3000 СЃРёРјСѓР»СЏС†РёР№, РІС‹ СѓРІРµСЂРµРЅС‹?\n");
                 }
                 else {
-                    printf("Это будет в высшей степени долго.\nДля режима отладки рекомендуется < 3000 симуляций, вы уверены?\n");
+                    printf("Р­С‚Рѕ Р±СѓРґРµС‚ РІ РІС‹СЃС€РµР№ СЃС‚РµРїРµРЅРё РґРѕР»РіРѕ.\nР”Р»СЏ СЂРµР¶РёРјР° РѕС‚Р»Р°РґРєРё СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ < 3000 СЃРёРјСѓР»СЏС†РёР№, РІС‹ СѓРІРµСЂРµРЅС‹?\n");
                 }
-                printf("Y/yes - да\n");
-                printf("N/no - нет\n");
+                printf("Y/yes - РґР°\n");
+                printf("N/no - РЅРµС‚\n");
 
                 char str_choice[3];
                 string_get_secure(str_choice, 3);
 
-                // Приводим ввод к нижнему регистру //
+                // РџСЂРёРІРѕРґРёРј РІРІРѕРґ Рє РЅРёР¶РЅРµРјСѓ СЂРµРіРёСЃС‚СЂСѓ //
                 for (int i = 0; str_choice[i]; i++) {
                     str_choice[i] = tolower(str_choice[i]);
                 }
 
                 if (strcmp(str_choice, "y") == 0 || strcmp(str_choice, "yes") == 0) {
 
-                    printf("Продолжаем выполнение в режиме отладки с %d симуляциями.\n", *num_simulations);
+                    printf("РџСЂРѕРґРѕР»Р¶Р°РµРј РІС‹РїРѕР»РЅРµРЅРёРµ РІ СЂРµР¶РёРјРµ РѕС‚Р»Р°РґРєРё СЃ %d СЃРёРјСѓР»СЏС†РёСЏРјРё.\n", *num_simulations);
 
                 }
                 else {
 
-                    printf("Операция отменена.\n");
+                    printf("РћРїРµСЂР°С†РёСЏ РѕС‚РјРµРЅРµРЅР°.\n");
                     press_any_key_to_continue();
                     clearConsole();
                     break;
@@ -182,8 +170,8 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
                 press_any_key_to_continue();
                 clearConsole();
             }
-            printf("Не нажимайте ничего пока не загрузится результат \n");
-            printf("Загрузка...\n");
+            printf("РќРµ РЅР°Р¶РёРјР°Р№С‚Рµ РЅРёС‡РµРіРѕ РїРѕРєР° РЅРµ Р·Р°РіСЂСѓР·РёС‚СЃСЏ СЂРµР·СѓР»СЊС‚Р°С‚ \n");
+            printf("Р—Р°РіСЂСѓР·РєР°...\n");
             calculate_probabilities(game, used_cards, *num_simulations, settings);
 
             press_any_key_to_continue();
@@ -194,27 +182,27 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
     case 2: {
 
         printf("-----------------------------------------------\n");
-        printf("Введите количество симуляций\nДиапазон значений от 100 до 5.000.000\n");
-        printf("Рекомендуется 100.000 - 300.000 симуляций\nЗначения >1.000.000 могут долго работать\n");
-        printf("Или введите 0 для отмены\n");
+        printf("Р’РІРµРґРёС‚Рµ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРёРјСѓР»СЏС†РёР№\nР”РёР°РїР°Р·РѕРЅ Р·РЅР°С‡РµРЅРёР№ РѕС‚ 100 РґРѕ 5.000.000\n");
+        printf("Р РµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ 100.000 - 300.000 СЃРёРјСѓР»СЏС†РёР№\nР—РЅР°С‡РµРЅРёСЏ >1.000.000 РјРѕРіСѓС‚ РґРѕР»РіРѕ СЂР°Р±РѕС‚Р°С‚СЊ\n");
+        printf("РР»Рё РІРІРµРґРёС‚Рµ 0 РґР»СЏ РѕС‚РјРµРЅС‹\n");
         printf("-----------------------------------------------\n");
-        printf("Ваш выбор: ");
+        printf("Р’Р°С€ РІС‹Р±РѕСЂ: ");
         int num_simulations_new = scanf_secure("int");
 
         if (num_simulations_new == 0) {
-            printf("Операция отменена.\n");
+            printf("РћРїРµСЂР°С†РёСЏ РѕС‚РјРµРЅРµРЅР°.\n");
             press_any_key_to_continue();
             clearConsole();
         }
         else if (num_simulations_new >= 100 && num_simulations_new <= 5000000) {
-            *num_simulations = num_simulations_new; // обновляем количество симуляцийй
-            printf("Вы установили %d симуляций для метода Монте-Карло\n", *num_simulations);
+            *num_simulations = num_simulations_new; // РѕР±РЅРѕРІР»СЏРµРј РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРёРјСѓР»СЏС†РёР№Р№
+            printf("Р’С‹ СѓСЃС‚Р°РЅРѕРІРёР»Рё %d СЃРёРјСѓР»СЏС†РёР№ РґР»СЏ РјРµС‚РѕРґР° РњРѕРЅС‚Рµ-РљР°СЂР»Рѕ\n", *num_simulations);
             press_any_key_to_continue();
             clearConsole();
         }
         else {
-            printf("Вы ввели значение вне диапазона! Используем 250000 по умолчанию.\n");
-            *num_simulations = 250000; // значение по умолчанию
+            printf("Р’С‹ РІРІРµР»Рё Р·РЅР°С‡РµРЅРёРµ РІРЅРµ РґРёР°РїР°Р·РѕРЅР°! РСЃРїРѕР»СЊР·СѓРµРј %d РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.\n", DEFAULT_SIMULATIONS);
+            *num_simulations = DEFAULT_SIMULATIONS; // Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
             press_any_key_to_continue();
             clearConsole();
         }
@@ -234,16 +222,16 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
             clearConsole();
         }
         else {
-            printf("Введите номер игрока или 0 для отмены: ");
+            printf("Р’РІРµРґРёС‚Рµ РЅРѕРјРµСЂ РёРіСЂРѕРєР° РёР»Рё 0 РґР»СЏ РѕС‚РјРµРЅС‹: ");
             choice_user = scanf_secure("int");
             if (choice_user == 0) {
-                printf("Отмена операции.\n");
+                printf("РћС‚РјРµРЅР° РѕРїРµСЂР°С†РёРё.\n");
                 press_any_key_to_continue();
                 clearConsole();
                 break;
             }
             else if (choice_user < 1 || choice_user > game->get_num_players()) {
-                printf("Вы ввели число вне диапазона!\n");
+                printf("Р’С‹ РІРІРµР»Рё С‡РёСЃР»Рѕ РІРЅРµ РґРёР°РїР°Р·РѕРЅР°!\n");
                 press_any_key_to_continue();
                 clearConsole();
                 break;

@@ -192,6 +192,17 @@ typedef struct {
     Rank kicker[5];
 } PokerCombination;
 
+class Settings {
+private:
+
+
+
+public:
+
+
+};
+
+
 typedef struct {
     bool ties_visible_mode;
     bool wins_visible_mode;
