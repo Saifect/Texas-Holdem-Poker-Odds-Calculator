@@ -685,19 +685,3 @@ void compare_all_hands(Game* game, PokerCombination hands[]) {
         }
     }
 }
-
-
-void update_progress_bar(int current_sim, int total_sims, double elapsed_seconds) {
-    const int bar_width = 50;
-    float progress = (float)current_sim / total_sims;
-    int filled = (int)(bar_width * progress);
-
-    printf("\r["); // Возврат каретки в начало строки
-    for (int i = 0; i < bar_width; ++i) {
-        if (i < filled) printf("=");
-        else if (i == filled) printf(">");
-        else printf(" ");
-    }
-    printf("] %d%% Время: %.1fs", (int)(progress * 100), elapsed_seconds);
-    fflush(stdout);
-}

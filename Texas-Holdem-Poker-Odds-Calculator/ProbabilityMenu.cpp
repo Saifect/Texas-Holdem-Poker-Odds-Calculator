@@ -39,10 +39,24 @@ void print_probabilityMenu(Game* game, Settings* settings, bool used_cards[NUM_R
             print_board_cards(&game->get_board());
         }
         printf("Текущая стадия игры (улица): %s\n", game->get_phase());
-        double estimated_time = (num_simulations * (1.65 + (game->get_current_players() - 2) * ((3.5 - 1.65) / (12 - 2)))) / settings->get_num_simulations();
-
-        
         num_simulations = settings->get_num_simulations();
+        // Получаем текущее количество игроков
+        int current_players = game->get_current_players();
+
+        // Базовые значения времени (в секундах) на основе ваших примеров:
+        // - Для 2 игроков: 100,000 симуляций → 0.667 секунды (667 мс)
+        // - Для 12 игроков: 100,000 симуляций → 3.5 секунды (3500 мс)
+        // Вычисляем время на одну симуляцию для разного числа игроков:
+        const double BASE_TIME_PER_SIM_2_PLAYERS = 0.667 / 100000.0;  // 0.00000667 сек/симуляцию
+        const double BASE_TIME_PER_SIM_12_PLAYERS = 3.5 / 100000.0;    // 0.000035 сек/симуляцию
+
+        // Линейная интерполяция времени между 2 и 12 игроками
+        double time_per_simulation = BASE_TIME_PER_SIM_2_PLAYERS +
+            (current_players - 2) *
+            ((BASE_TIME_PER_SIM_12_PLAYERS - BASE_TIME_PER_SIM_2_PLAYERS) / (12 - 2));
+
+        // Итоговое время = количество симуляций * время на одну симуляцию
+        double estimated_time = num_simulations * time_per_simulation;
         printf("================================================\n");
         printf("             Настройка симуляций               \n");
         printf("================================================\n");
