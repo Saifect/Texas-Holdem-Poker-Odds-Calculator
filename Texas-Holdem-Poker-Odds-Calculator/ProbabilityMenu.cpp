@@ -39,24 +39,34 @@ void print_probabilityMenu(Game* game, Settings* settings, bool used_cards[NUM_R
             print_board_cards(&game->get_board());
         }
         printf("Текущая стадия игры (улица): %s\n", game->get_phase());
-        num_simulations = settings->get_num_simulations();
-        // Получаем текущее количество игроков
+
+        double estimated_time;
         int current_players = game->get_current_players();
+        // Получаем количество симуляций и текущее число игроков
+        int num_simulations = settings->get_num_simulations();
 
-        // Базовые значения времени (в секундах) на основе ваших примеров:
-        // - Для 2 игроков: 100,000 симуляций → 0.667 секунды (667 мс)
-        // - Для 12 игроков: 100,000 симуляций → 3.5 секунды (3500 мс)
-        // Вычисляем время на одну симуляцию для разного числа игроков:
-        const double BASE_TIME_PER_SIM_2_PLAYERS = 0.667 / 100000.0;  // 0.00000667 сек/симуляцию
-        const double BASE_TIME_PER_SIM_12_PLAYERS = 3.5 / 100000.0;    // 0.000035 сек/симуляцию
+        if (num_simulations == 250000 && current_players == 2) {
+            estimated_time = 1.65;
+        }
+        else if (num_simulations == 50000 && current_players == 2) {
+            estimated_time = 0.4;
+        }
+        else {
+     
+            // Для 2 игроков: 100000 симуляций занимают примерно 0.70 секунд
+            double base_time_per_sim_2 = 0.67 / 100000.0; // сек/симуляция для 2 игроков
+         
+            // Показатель степени, полученный из измерений для 10 игроков:
+            // (10/2)^k = 5^k = 1.78  -->  k ≈ 0.358
+            const double EXPONENT = 0.358;
 
-        // Линейная интерполяция времени между 2 и 12 игроками
-        double time_per_simulation = BASE_TIME_PER_SIM_2_PLAYERS +
-            (current_players - 2) *
-            ((BASE_TIME_PER_SIM_12_PLAYERS - BASE_TIME_PER_SIM_2_PLAYERS) / (12 - 2));
+            // Вычисляем время на одну симуляцию с учётом текущего числа игроков
+            double time_per_simulation = base_time_per_sim_2 * pow((double)current_players / 2.0, EXPONENT);
 
-        // Итоговое время = количество симуляций * время на одну симуляцию
-        double estimated_time = num_simulations * time_per_simulation;
+            // Итоговое оценочное время (в секундах)
+            estimated_time = num_simulations * time_per_simulation;
+        }
+
         printf("================================================\n");
         printf("             Настройка симуляций               \n");
         printf("================================================\n");
@@ -167,11 +177,9 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
                 press_any_key_to_continue();
                 clearConsole();
             }
-            printf("Не нажимайте ничего пока не загрузится результат \n");
+            printf("Зажмите 'Q' для выхода\n");
             printf("Загрузка...\n");
             calculate_probabilities(game, used_cards, settings->get_num_simulations(), settings);
-
-            press_any_key_to_continue();
             clearConsole();
         }
         break;
@@ -180,7 +188,7 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
    
         printf("-----------------------------------------------\n");
         printf("Введите количество симуляций\nДиапазон значений от %d до %d\n", settings->get_min_simulations(), settings->get_max_simulations());
-        printf("Рекомендуется 100.000 - 300.000 симуляций\nЗначения >1.000.000 могут долго работать\n");
+        printf("Рекомендуется 100.000 - 300.000 симуляций\n");
         printf("Или введите 0 для отмены\n");
         printf("-----------------------------------------------\n");
         printf("Ваш выбор: ");
@@ -194,7 +202,9 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
         else if (num_simulations_new >= settings->get_min_simulations() && num_simulations_new <= settings->get_max_simulations()) {
             settings->set_num_simulations(num_simulations_new); // обновляем количество симуляций
             printf("Вы установили %d симуляций для метода Монте-Карло\n", num_simulations_new);
-            printf("Текущее количество симуляций в settings: %d\n", settings->get_num_simulations()); // Отладочный вывод
+            if (settings->get_debugging_mode() == true) {
+                printf("Текущее количество симуляций в settings: %d\n", settings->get_num_simulations()); // Отладочный вывод
+            }
             press_any_key_to_continue();
             clearConsole();
         }
@@ -284,4 +294,10 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
         clearConsole();
         break;
     }
+}
+
+
+void flush_input_buffer() {
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF);
 }

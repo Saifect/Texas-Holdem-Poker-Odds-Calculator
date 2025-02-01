@@ -60,15 +60,14 @@ void handle_settingsMenu_choice(Settings* settings, int choice, bool* exit) {
 }
 
 void configure_simulations(Settings* settings) {
-    int choice;
-    int value;
-    bool exit = false;
-    while (!exit) {
+    int choice = -1;
+    int value = 0;
+
+    while (true) {
         printf("\n");
         printf("================================================\n");
         printf("         Настройка количества симуляций         \n");
         printf("================================================\n");
-        printf("Выберите параметр для изменения:\n");
         printf("1. Максимальное количество игроков (текущее: %d)\n", settings->get_max_players());
         printf("2. Минимальное количество симуляций (текущее: %d)\n", settings->get_min_simulations());
         printf("3. Максимальное количество симуляций (текущее: %d)\n", settings->get_max_simulations());
@@ -77,42 +76,63 @@ void configure_simulations(Settings* settings) {
         printf("0. Назад\n");
         printf("================================================\n");
         printf("Ваш выбор: ");
-        get_user_choice(&choice);
+
+        choice = scanf_secure("int");
+
+        if (choice < 0 || choice > 4) {
+            printf("Ошибка: Введите корректный номер пункта (0-4).\n");
+            press_any_key_to_continue();
+            clearConsole();
+            continue;
+        }
 
         if (choice == 0) {
-            exit = true; // Возврат в предыдущее меню
+            return;  // Выход из меню
         }
-        else {
-            printf("Введите новое значение: ");
-            get_user_choice(&value);
-        }
+
+        printf("Введите новое значение: ");
+        value = scanf_secure("int");
 
         switch (choice) {
         case 1:
-            settings->set_max_players(value);
+            if (value > 12) {
+                printf("Ошибка: Максимальное количество игроков — 12!\n");
+            }
+            else if (value < 0) {
+                printf("Отрицательные игроки, да? Звучит интересно\n");
+            }
+            else  if (value < 2) {
+                printf("Нужно хотя бы два игрока для вычисления вероятностей\n");
+            }
+            else {
+                settings->set_max_players(value);
+                printf("Максимальное количество игроков обновлено.\n");
+            }
             break;
 
         case 2:
-            settings->set_min_simulations(value);
+            if (value > 0) {
+                settings->set_min_simulations(value);
+                printf("Минимальное количество симуляций обновлено.\n");
+            }
             break;
 
         case 3:
-            settings->set_max_simulations(value);
+            if (value > 0) {
+                settings->set_max_simulations(value);
+                printf("Максимальное количество симуляций обновлено.\n");
+            }
             break;
 
         case 4:
-            settings->set_num_simulations(value);
-            break;
-
-        default:
-            clearConsole();
+            if (value > 0) {
+                settings->set_num_simulations(value);
+                printf("Количество симуляций по умолчанию обновлено.\n");
+            }
             break;
         }
 
-        if (choice != 0) {
-            printf("Параметр успешно изменен.\n");
-            press_any_key_to_continue();
-            clearConsole();
-        }
+        press_any_key_to_continue();
+        clearConsole();
     }
 }

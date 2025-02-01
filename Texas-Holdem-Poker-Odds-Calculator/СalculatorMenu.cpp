@@ -78,26 +78,7 @@ void handle_calculatorMenu_choice(int choice, Game* game, Settings* settings, bo
         break;
 
     case 0:
-        printf("Вы уверены?\n");
-        printf("Y/yes - да\n");
-        printf("N/no - нет\n");
-
-        char str_choice[3];
-        string_get_secure(str_choice, 3);
-
-        for (int i = 0; str_choice[i]; i++) {
-            str_choice[i] = tolower(str_choice[i]);
-        }
-
-        if (strcmp(str_choice, "y") == 0 || strcmp(str_choice, "yes") == 0) {
-            *exit = true;
-        }
-        else {
-            printf("Операция отменена.\n");
-            press_any_key_to_continue();
-            clearConsole();
-            break;
-        }
+        *exit = true;
         clearConsole();
         break;
 

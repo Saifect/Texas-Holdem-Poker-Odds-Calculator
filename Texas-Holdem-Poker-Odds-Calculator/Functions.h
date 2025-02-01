@@ -41,8 +41,8 @@ void shuffle_deck(Card* deck, int size);
 void create_deck(Card* deck, bool used_cards[NUM_RANKS][NUM_SUITS]);
 
 // Функции логики игры
-PokerCombination determine_hand(const Hand hand, const Board board);
-int compare_hands(PokerCombination hand1, PokerCombination hand2);
+PokerCombination determine_hand(Hand& hand, const Board& board);
+int compare_hands(const PokerCombination& hand1, const PokerCombination& hand2);
 void print_hand(PokerCombination hand);
 void print_board_cards(const Board* board);
 void deal_board_random_cards(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int start_index, int num_cards);
@@ -57,3 +57,5 @@ void debug_board(const Board& board);
 void handle_settingsMenu_choice(Settings* settings, int choice, bool* exit);
 void print_settingsMenu(Settings* settings);
 void configure_simulations(Settings* settings);
+void update_progress_bar(int current_sim, int total_sims, double elapsed_seconds);
+void flush_input_buffer();

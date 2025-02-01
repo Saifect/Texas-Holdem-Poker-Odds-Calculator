@@ -14,12 +14,13 @@
 #include <vector>
 #include <algorithm> // Подключаем заголовочный файл для std::sort
 #include <chrono>
+#include <thread>
 
 #define NUM_RANKS 13
 #define NUM_SUITS 4
 #define MAX_BOARD_CARDS 5
 #define DEF_SIMULATIONS 250000
-
+#define ESC_KEY 27   // ASCII-код клавиши Esc
 
 extern bool used_cards[NUM_RANKS][NUM_SUITS]; // Объявление глобальной переменной
 

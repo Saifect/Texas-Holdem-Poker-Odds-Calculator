@@ -122,7 +122,7 @@ bool is_unique_cards(Card* cards, int count) {
     return true;
 }
 
-int compare_hands(PokerCombination hand1, PokerCombination hand2) {
+inline int compare_hands(const PokerCombination& hand1, const PokerCombination& hand2) {
     if (hand1.hand_rank > hand2.hand_rank) return 1;
     if (hand1.hand_rank < hand2.hand_rank) return -1;
 
@@ -134,7 +134,7 @@ int compare_hands(PokerCombination hand1, PokerCombination hand2) {
     case STRAIGHT:
     case STRAIGHT_FLUSH:
         if (hand1.high_card == hand2.high_card) {
-            // Compare the entire straight
+            // Сравнение всего стрита
             for (int i = 0; i < 5; i++) {
                 if (hand1.kicker[i] > hand2.kicker[i]) return 1;
                 if (hand1.kicker[i] < hand2.kicker[i]) return -1;
@@ -150,17 +150,19 @@ int compare_hands(PokerCombination hand1, PokerCombination hand2) {
         break;
 
     case THREE_OF_A_KIND:
-        // у трипса только один кикер
-        if (hand1.kicker[0] > hand2.kicker[0]) return 1;
-        if (hand1.kicker[0] < hand2.kicker[0]) return -1;
+        // Исправлено: теперь у трипса два кикера
+        for (int i = 0; i < 2; i++) {
+            if (hand1.kicker[i] > hand2.kicker[i]) return 1;
+            if (hand1.kicker[i] < hand2.kicker[i]) return -1;
+        }
         break;
 
     case ONE_PAIR:
-        // Сравниваем старшую пару
+        // Сравнение старшей пары
         if (hand1.high_card > hand2.high_card) return 1;
         if (hand1.high_card < hand2.high_card) return -1;
 
-        // Сравниваем кикеры
+        // Сравнение кикеров
         for (int i = 0; i < 3; i++) {
             if (hand1.kicker[i] > hand2.kicker[i]) return 1;
             if (hand1.kicker[i] < hand2.kicker[i]) return -1;
@@ -168,20 +170,20 @@ int compare_hands(PokerCombination hand1, PokerCombination hand2) {
         break;
 
     case TWO_PAIR: {
-        // Сравниваем старшую пару
+        // Сравнение старшей пары
         if (hand1.high_card != hand2.high_card) {
             return hand1.high_card - hand2.high_card;
         }
-        // Сравниваем младшую пару
+        // Сравнение младшей пары
         if (hand1.kicker[0] != hand2.kicker[0]) {
             return hand1.kicker[0] - hand2.kicker[0];
         }
-        // Сравниваем кикер (старшую карту вне пар)
+        // Сравнение кикера (старшей карты вне пар)
         return hand1.kicker[1] - hand2.kicker[1];
     }
 
     case FLUSH:
-        // у флеша все пять карт сравниваются по убыванию
+        // Для флеша сравниваем все пять карт по убыванию
         for (int i = 0; i < 5; i++) {
             if (hand1.kicker[i] > hand2.kicker[i]) return 1;
             if (hand1.kicker[i] < hand2.kicker[i]) return -1;
@@ -189,7 +191,7 @@ int compare_hands(PokerCombination hand1, PokerCombination hand2) {
         break;
 
     case HIGH_CARD:
-        // у старшей карты все пять карт сравниваются
+        // Для старшей карты сравнение всех пяти карт
         for (int i = 0; i < 5; i++) {
             if (hand1.kicker[i] > hand2.kicker[i]) return 1;
             if (hand1.kicker[i] < hand2.kicker[i]) return -1;
@@ -203,7 +205,8 @@ int compare_hands(PokerCombination hand1, PokerCombination hand2) {
     return 0; // Ничья
 }
 
-PokerCombination determine_hand(Hand hand, Board board) {
+
+PokerCombination determine_hand(Hand& hand, const Board& board) {
     PokerCombination result;
     result.hand_rank = HIGH_CARD;
     result.high_card = NONE_RANK;
@@ -418,24 +421,31 @@ PokerCombination determine_hand(Hand hand, Board board) {
 }
 
 
-void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], int choice_numSimulations, Settings* settings) {
+void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS],
+    int choice_numSimulations, Settings* settings) {
    
-    // Замер времени начала выполнения
+    bool stop_simulation = false; // Флаг для остановки симуляции
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    // Сброс статистики
-    for (int i = 0; i < game->get_current_players(); i++) {
+    // Сброс статистики игроков
+    int num_players = game->get_current_players();
+    for (int i = 0; i < num_players; i++) {
         game->get_player(i).set_wins(0);
         game->get_player(i).set_ties(0);
         game->get_player(i).set_losses(0);
     }
 
-    // Основной цикл симуляции
+    // Интервал обновления прогресс-бара (каждые ~1%)
+    int update_interval = std::max<int>(1, choice_numSimulations / 100);
+
+    // Сохраним количество реально выполненных симуляций
+    int actual_simulations = choice_numSimulations;
+
+    // Основной цикл симуляций
     for (int sim = 0; sim < choice_numSimulations; sim++) {
+        // --- Подготовка колоды ---
         Card deck[52];
         int deck_index = 0;
-
-        // Заполнение колоды, исключая уже использованные карты
         for (int rank = 0; rank < NUM_RANKS; rank++) {
             for (int suit = 0; suit < NUM_SUITS; suit++) {
                 if (!used_cards[rank][suit]) {
@@ -451,55 +461,39 @@ void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], 
             std::swap(deck[j], deck[k]);
         }
 
-        // Формирование симуляционной доски
+        // --- Формирование симуляционной доски ---
         Card simulation_board[5];
-
         int num_existing_board_cards = game->get_board().get_num_cards();
-
-        // Проверяем корректность количества карт борда
-        if (num_existing_board_cards > 5) {
-            fprintf(stderr, "Ошибка: недопустимое количество карт на борде (%d)\n", num_existing_board_cards);
-            continue;
-        }
-
-        // Копирование существующих карт борда
         for (int j = 0; j < num_existing_board_cards; j++) {
             simulation_board[j] = game->get_board().get_card(j);
         }
-
-        // Добавление недостающих карт из колоды
         int sim_board_index = num_existing_board_cards;
         while (sim_board_index < 5 && deck_index > 0) {
             simulation_board[sim_board_index++] = deck[--deck_index];
         }
 
-        // Проверяем, что симуляционная доска заполнена корректно
-        if (sim_board_index != 5) {
-            fprintf(stderr, "Ошибка: доска заполнена некорректно. sim_board_index = %d\n", sim_board_index);
-            continue;
-        }
-
-        // Создание объекта борда для симуляции
         Board simulated_board;
         simulated_board.set_num_cards(5);
-
         for (int j = 0; j < 5; j++) {
             simulated_board.set_card(j, simulation_board[j]);
         }
 
-        // Массив для хранения комбинаций всех игроков
-        PokerCombination* player_hands = (PokerCombination*)malloc(game->get_current_players() * sizeof(PokerCombination));
+        // Выделяем память для комбинаций игроков
+        PokerCombination* player_hands = (PokerCombination*)malloc(num_players * sizeof(PokerCombination));
+        if (!player_hands) {
+            fprintf(stderr, "Ошибка выделения памяти для комбинаций игроков\n");
+            exit(1);
+        }
 
-        // Оцениваем комбинации игроков с текущим бордом
-        for (int j = 0; j < game->get_current_players(); j++) {
+        // Определяем комбинацию для каждого игрока
+        for (int j = 0; j < num_players; j++) {
             player_hands[j] = determine_hand(game->get_player(j).get_hand(), simulation_board);
         }
 
-        // Выбор лучшей комбинации и обработка ничьих
+        // Определяем лучшую комбинацию и обрабатываем ничьи
         int best_player = 0;
         bool tie = false;
-
-        for (int j = 1; j < game->get_current_players(); j++) {
+        for (int j = 1; j < num_players; j++) {
             int comparison = compare_hands(player_hands[j], player_hands[best_player]);
             if (comparison > 0) {
                 best_player = j;
@@ -510,8 +504,8 @@ void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], 
             }
         }
 
-        // Обновление статистики
-        for (int j = 0; j < game->get_current_players(); j++) {
+        // Обновляем статистику игроков
+        for (int j = 0; j < num_players; j++) {
             if (tie && compare_hands(player_hands[j], player_hands[best_player]) == 0) {
                 game->get_player(j).set_ties(game->get_player(j).get_ties() + 1);
                 settings->set_tie(true);
@@ -523,39 +517,59 @@ void calculate_probabilities(Game* game, bool used_cards[NUM_RANKS][NUM_SUITS], 
                 game->get_player(j).set_losses(game->get_player(j).get_losses() + 1);
             }
         }
-         
-        calculate_probabilities_debugging(game, settings, simulation_board, player_hands, sim, tie, best_player);
 
-        // Освобождение памяти
+        // Отладочный вывод, если включён режим отладки
+        if (settings->get_debugging_mode() == true) {
+            calculate_probabilities_debugging(game, settings, simulation_board, player_hands, sim, tie, best_player);
+        }
+
         free(player_hands);
-    }
 
-    // Вывод результатов
-    double total_simulations = (double)choice_numSimulations;
+        if (settings->get_debugging_mode() == false) {
+            // Обновляем прогресс-бар через заданный интервал или на последней итерации
+            if (sim % update_interval == 0 || sim == choice_numSimulations - 1) {
+                auto current_time = std::chrono::high_resolution_clock::now();
+                double elapsed = std::chrono::duration<double>(current_time - start_time).count();
+                update_progress_bar(sim + 1, choice_numSimulations, elapsed);
 
+                if (_kbhit()) {
+                    char ch = _getch();
+                    if (toupper(ch) == 'Q') {
+                        stop_simulation = true;
+                        printf("\nСимуляция прервана пользователем!\nКоличество симмуляций прошло: %d", sim);
+                        break;
+                    }
+                }
+
+            }
+        }
+
+       
+
+    } // конец основного цикла симуляций
+
+    printf("\n\n");
+
+    // Вывод результатов для каждого игрока с использованием фактического числа симуляций
+    double total_simulations = (double)actual_simulations;
     for (int i = 0; i < game->get_current_players(); i++) {
-        // Получаем карты игрока
         const Card& card1 = game->get_player(i).get_hand().get_const_card(0);
         const Card& card2 = game->get_player(i).get_hand().get_const_card(1);
-
         if (card1.get_rank() != NONE_RANK && card2.get_rank() != NONE_RANK) {
-            printf("------------------\n    Игрок %d\n------------------\n", i + 1);
-            printf("Победы: %.2f%%\n", (game->get_player(i).get_wins() / total_simulations) * 100);
-            printf("Поражения: %.2f%%\n", (game->get_player(i).get_losses() / total_simulations) * 100);
-            printf("Ничьи: %.2f%%\n", (game->get_player(i).get_ties() / total_simulations) * 100);
-        
+            printf("------------------\n     Игрок %d\n------------------\n", i + 1);
+            printf("Победы:     %.2f%%\n", (game->get_player(i).get_wins() / total_simulations) * 100);
+            printf("Поражения:  %.2f%%\n", (game->get_player(i).get_losses() / total_simulations) * 100);
+            printf("Ничьи:      %.2f%%\n", (game->get_player(i).get_ties() / total_simulations) * 100);
         }
     }
+    printf("\n");
 
-    // Замер времени окончания выполнения
     auto end_time = std::chrono::high_resolution_clock::now();
-
-    // Вычисление времени выполнения
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-
-    // Вывод времени выполнения
     printf("Время выполнения функции: %lld мс\n", duration);
 
+    clear_buffer();
+    press_any_key_to_continue();
 }
 
 void debug_board(const Board& board) {
@@ -570,6 +584,7 @@ void debug_board(const Board& board) {
         }
     }
 }
+
 void calculate_probabilities_debugging(Game* game, Settings* settings, Board simulated_board, PokerCombination* player_hands, int current_simulation, bool tie, int best_player) {
     // Отображение победителя или ничьей
     if (settings->get_wins_visible_mode() == true) {
@@ -688,16 +703,46 @@ void compare_all_hands(Game* game, PokerCombination hands[]) {
 
 
 void update_progress_bar(int current_sim, int total_sims, double elapsed_seconds) {
-    const int bar_width = 50;
+    const int bar_width = 25;
+    static int last_percent = -1;
+    static auto last_update_time = std::chrono::high_resolution_clock::now();
+
     float progress = (float)current_sim / total_sims;
+    int percent = (int)(progress * 100);
+
+    // Проверка: обновлять ли, если процент не изменился и с последнего обновления прошло мало времени
+    auto now = std::chrono::high_resolution_clock::now();
+    double delta_time = std::chrono::duration<double, std::milli>(now - last_update_time).count();
+    if (percent == last_percent && delta_time < 10) {
+        return;
+    }
+    last_percent = percent;
+    last_update_time = now;
+
     int filled = (int)(bar_width * progress);
 
-    printf("\r["); // Возврат каретки в начало строки
-    for (int i = 0; i < bar_width; ++i) {
-        if (i < filled) printf("=");
-        else if (i == filled) printf(">");
-        else printf(" ");
+    // Массив символов спиннера
+    const char spinner[] = { '|', '/', '-', '\\' };
+    int spinner_index = current_sim % 4;
+
+    // Оценка оставшегося времени (если прогресс > 0)
+    double remaining = (progress > 0) ? (elapsed_seconds / progress - elapsed_seconds) : 0.0;
+
+    // Формирование строки прогресс-бара в буфере
+    char buffer[256];
+    int pos = 0;
+    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "\r[");
+    for (int i = 0; i < bar_width; i++) {
+        if (i < filled)
+            pos += snprintf(buffer + pos, sizeof(buffer) - pos, "=");
+        else if (i == filled)
+            pos += snprintf(buffer + pos, sizeof(buffer) - pos, ">");
+        else
+            pos += snprintf(buffer + pos, sizeof(buffer) - pos, " ");
     }
-    printf("] %d%% Время: %.1fs", (int)(progress * 100), elapsed_seconds);
+    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "] %3d%%  %c  Осталось: %.1fs", percent, spinner[spinner_index], remaining);
+
+    // Вывод всей строки разом
+    printf("%s", buffer);
     fflush(stdout);
 }

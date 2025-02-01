@@ -386,8 +386,8 @@ Settings::Settings()
     debug_player_index(-1),
     max_players(10),          // Пример значения по умолчанию
     min_simulations(100),    // Пример значения по умолчанию
-    max_simulations(1000000), // Пример значения по умолчанию
-    num_simulations(250000) // Пример значения по умолчанию
+    max_simulations(5000000), // Пример значения по умолчанию
+    num_simulations(50000) // Пример значения по умолчанию
 {}
 
 // Геттеры и сеттеры
@@ -503,5 +503,5 @@ void Settings::initialize() {
     max_players = 10;        
     min_simulations = 100;
     max_simulations = 1000000;
-    num_simulations = 250000;
+    num_simulations = 50000;
 }

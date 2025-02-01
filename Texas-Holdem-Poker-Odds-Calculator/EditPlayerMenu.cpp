@@ -136,7 +136,7 @@ void handle_editPlayerMenu_choice(int choice, Game* game, Settings* settings ,bo
         clearConsole();
         break;
     case 6:
-        printf("Введите количество игроков (2-%d) или 0 для отмены: ", game->get_num_players());
+        printf("Введите количество игроков (2-%d) или 0 для отмены: ", settings->get_max_players());
         choice_player = scanf_secure("int");
 
         if (choice_player == 0) {
@@ -153,7 +153,7 @@ void handle_editPlayerMenu_choice(int choice, Game* game, Settings* settings ,bo
             break;
         }
 
-        if (choice_player < 2 || choice_player > game->get_num_players()) {
+        if (choice_player < 2 || choice_player > settings->get_max_players()) {
             printf("Вы ввели число вне диапазона!\n");
             press_any_key_to_continue();
             clearConsole();
@@ -186,7 +186,7 @@ void handle_editPlayerMenu_choice(int choice, Game* game, Settings* settings ,bo
 
 void deal_cards(Player* player, bool used_cards[NUM_RANKS][NUM_SUITS]) {
     printf("------------------------------------------------\n");
-    printf("          Ввод карт для игрока\n");
+    printf("             Ввод карт для игрока               \n");
     printf("------------------------------------------------\n");
 
     // Сначала очищаем текущие карты игрока
@@ -196,7 +196,8 @@ void deal_cards(Player* player, bool used_cards[NUM_RANKS][NUM_SUITS]) {
 
     for (int current_card = 0; current_card < 2; current_card++) {
         do {
-            printf("Введите ранг %d-ой карты (2-14) или 0 для выхода: ", current_card + 1);
+            printf("(11 - Валет, 12 - Дама, 13 - Король, 14 - Туз)\n");
+            printf("Введите ранг %d-ой карты или 0 для выхода: ", current_card + 1);
             rank_choice_card[current_card] = (int)scanf_secure("int");
             if (rank_choice_card[current_card] == 0) {
                 // Отмена ввода
@@ -210,8 +211,8 @@ void deal_cards(Player* player, bool used_cards[NUM_RANKS][NUM_SUITS]) {
                 printf("Неверный ранг карты! Попробуйте снова.\n");
                 continue;
             }
-
-            printf("Введите масть %d-ой карты (1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики) или 0 для выхода: ", current_card + 1);
+            printf("(1 - Черви, 2 - Бубны, 3 - Трефы, 4 - Пики)\n");
+            printf("Введите масть %d-ой карты или 0 для выхода: ", current_card + 1);
             suit_choice_card[current_card] = (int)scanf_secure("int");
             if (suit_choice_card[current_card] == 0) {
                 // Отмена ввода
@@ -241,9 +242,13 @@ void deal_cards(Player* player, bool used_cards[NUM_RANKS][NUM_SUITS]) {
                 used_cards[rank_choice_card[current_card] - 2][suit_choice_card[current_card] - 1] = true;
 
                 // Отладочный вывод массива used_cards
-                printf("Карта добавлена: %s %s\n",
-                    new_card.get_rank_name(), new_card.get_suit_name());
-
+                printf("------------------------------------------------\n");
+                printf("Карта %d добавлена: %s %s\n",
+                    current_card + 1, new_card.get_rank_name(), new_card.get_suit_name());
+                printf("------------------------------------------------\n");
+                if (current_card == 1) {
+                    press_any_key_to_continue();
+                }
                 break;
             }
         } while (true);
