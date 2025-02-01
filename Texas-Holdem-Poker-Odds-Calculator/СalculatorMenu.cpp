@@ -40,7 +40,7 @@ void print_calculatorMenu(Game* game, Settings* settings, PokerCombination* resu
             print_board_cards(&game->get_board());
         }
 
-        printf("Текущая стадия игры (улица): %s\n", game->get_phase());  // Используем геттер для фазы
+        printf("Текущая стадия игры (улица): %s\n", game->get_phase()); 
 
         // Меню
         printf("================================================\n");
