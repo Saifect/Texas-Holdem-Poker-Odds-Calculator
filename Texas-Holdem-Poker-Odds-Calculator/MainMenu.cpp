@@ -59,11 +59,13 @@ void handle_mainMenu_choice(Game* game, Settings* settings, PokerCombination* re
         clearConsole();
         print_calculatorMenu(game, settings, result_player);
         break;
+
     case 2:
         printf("Не реализовано\n");
         press_any_key_to_continue();
         clearConsole();
         break;
+
     case 3:
         clearConsole();
         print_settingsMenu(settings);
