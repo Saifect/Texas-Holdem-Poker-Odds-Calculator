@@ -1,7 +1,3 @@
-Ниже приведён компактный вариант файла `README.md`:
-
----
-
 ```markdown
 # Poker Probability Calculator
 
@@ -32,25 +28,6 @@ A console application for calculating poker probabilities using Monte Carlo simu
 
 ---
 
-## Usage Example
-```
-================================================
-  Current Game Information                 
-================================================
-Player 1 Cards: King of Clubs and King of Diamonds
-Player 2 Cards: Ace of Hearts and Ace of Spades
-Board: None
-Stage: Preflop
-================================================
-  Simulation Settings                
-================================================
-Simulations: 250,000
-Estimated Time: 4.17 sec
-[=====================>] 87% (Press Q to quit)
-```
-
----
-
 ## Contributing
 Contributions are welcome (e.g., algorithm optimizations, GPU acceleration, additional translations, etc.).
 
@@ -58,6 +35,4 @@ Contributions are welcome (e.g., algorithm optimizations, GPU acceleration, addi
 
 ## Disclaimer
 For educational purposes only. Not intended for actual poker play. Supports a maximum of 12 players and up to 100,000,000 simulations.
-```
 
----
