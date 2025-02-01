@@ -8,6 +8,13 @@ A console application for calculating poker probabilities using Monte Carlo simu
 
 ---
 
+⚠️ **License Restrictions**  
+This software is for **personal and non-commercial use only**.  
+Corporate, commercial, or institutional use is strictly prohibited.  
+By using this software, you agree to these terms.  
+
+---
+
 ## Key Features
 - **Interactive Console Interface:** Supports both Russian and English.
 - **Customizable Simulations:** Configure number of players (2–12) and simulation count.
