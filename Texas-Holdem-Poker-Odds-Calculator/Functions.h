@@ -59,3 +59,4 @@ void print_settingsMenu(Settings* settings);
 void configure_simulations(Settings* settings);
 void update_progress_bar(int current_sim, int total_sims, double elapsed_seconds);
 void flush_input_buffer();
+double estimate_simulation_time(int num_simulations, int current_players);

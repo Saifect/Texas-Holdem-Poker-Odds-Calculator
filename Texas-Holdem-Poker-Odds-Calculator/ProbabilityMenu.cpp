@@ -45,33 +45,13 @@ void print_probabilityMenu(Game* game, Settings* settings, bool used_cards[NUM_R
         // Получаем количество симуляций и текущее число игроков
         int num_simulations = settings->get_num_simulations();
 
-        if (num_simulations == 250000 && current_players == 2) {
-            estimated_time = 1.65;
-        }
-        else if (num_simulations == 50000 && current_players == 2) {
-            estimated_time = 0.4;
-        }
-        else {
-     
-            // Для 2 игроков: 100000 симуляций занимают примерно 0.70 секунд
-            double base_time_per_sim_2 = 0.67 / 100000.0; // сек/симуляция для 2 игроков
-         
-            // Показатель степени, полученный из измерений для 10 игроков:
-            // (10/2)^k = 5^k = 1.78  -->  k ≈ 0.358
-            const double EXPONENT = 0.358;
-
-            // Вычисляем время на одну симуляцию с учётом текущего числа игроков
-            double time_per_simulation = base_time_per_sim_2 * pow((double)current_players / 2.0, EXPONENT);
-
-            // Итоговое оценочное время (в секундах)
-            estimated_time = num_simulations * time_per_simulation;
-        }
+        estimated_time = estimate_simulation_time(num_simulations, current_players);
 
         printf("================================================\n");
         printf("             Настройка симуляций               \n");
         printf("================================================\n");
         printf("Текущее количество симуляций: %d\n", num_simulations);
-        printf("Будет считаться примерно %.2f секунд(ы)\n", estimated_time); // Вывод времени
+        printf("Будет считаться менее %.2f секунд(ы)\n", estimated_time); // Вывод времени
         if (settings->get_wins_visible_mode() == false && settings->get_ties_visible_mode() == false && settings->get_simulations_visible_mode() == false) {
             printf("Режим отладки для симмуляций: Выключен\n");
         }
@@ -300,4 +280,22 @@ void handle_probabilityMenu_choice(int choice, Game* game, bool* exit, bool used
 void flush_input_buffer() {
     int ch;
     while ((ch = getchar()) != '\n' && ch != EOF);
+}
+
+double estimate_simulation_time(int num_simulations, int current_players) {
+    // Для 2 игроков (измерения)
+    const double base_sim_time = 1.302e-6;   // секунда на одну симуляцию для 2 игроков
+    const double base_overhead = 0.0849;     // накладные расходы для 2 игроков (сек)
+
+    // Линейный прирост при увеличении числа игроков
+    // (разница между 10 и 2 игроками делим на 8)
+    const double delta_sim_time = 0.0905e-6;  // прирост времени на симуляцию на одного игрока свыше 2-х
+    const double delta_overhead = 0.001725;   // прирост накладных расходов на одного игрока свыше 2-х
+
+    // Вычисляем время на одну симуляцию и накладные расходы в зависимости от числа игроков
+    double time_per_simulation = base_sim_time + (current_players - 2) * delta_sim_time;
+    double overhead = base_overhead + (current_players - 2) * delta_overhead;
+
+    // Итоговое оценочное время (в секундах)
+    return overhead + num_simulations * time_per_simulation;
 }
