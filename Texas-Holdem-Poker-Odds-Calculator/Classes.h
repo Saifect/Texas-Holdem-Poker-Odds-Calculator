@@ -1,6 +1,7 @@
 #pragma once
 #include "Globals.h"
 
+
 // Масть карты
 typedef enum {
     NONE_SUIT = -1,
@@ -16,49 +17,55 @@ typedef enum {
     JACK, QUEEN, KING, ACE
 } Rank;
 
+// Класс Card
 class Card {
 private:
     Suit suit;
     Rank rank;
     bool is_used; // Флаг использования карты
 
+    // Статическое поле для подсчёта созданных карт
+    static int totalCardsCreated;
+
 public:
-    // Конструктор по умолчанию
+    // Перегрузка операторов ++ (объявления)
+    Card& operator++();      // префиксная версия
+    Card operator++(int);    // постфиксная версия
+
+    // Дружественная функция для оператора вывода
+    friend std::ostream& operator<<(std::ostream& os, const Card& card);
+
+    // Конструкторы, геттеры, сеттеры и т.д.
     Card();
-
-    // Конструктор с параметрами
     Card(Suit suit, Rank rank);
-
-    // Геттеры
     Suit get_suit() const;
     Rank get_rank() const;
-
-    // Добавление сеттеров
     void set_suit(Suit suit);
     void set_rank(Rank rank);
     bool is_valid() const;
+    void set_used(bool used) { is_used = used; }
 
-    // Установка флага использования карты
-    void set_used(bool used) {
-        is_used = used;
+    // Служебные методы для формирования строк
+    std::string get_rank_name_impl() const;
+    std::string get_suit_name_impl() const;
+
+    // Публичный интерфейс остаётся неизменным (возвращает const char*),
+    // но реализован с использованием static thread_local переменных
+    inline const char* get_rank_name() const {
+        static thread_local std::string temp_rank;
+        temp_rank = get_rank_name_impl();
+        return temp_rank.c_str();
+    }
+    inline const char* get_suit_name() const {
+        static thread_local std::string temp_suit;
+        temp_suit = get_suit_name_impl();
+        return temp_suit.c_str();
     }
 
-    // Возвращает название ранга
-    const char* get_rank_name() const;
-
-    // Возвращает название масти
-    const char* get_suit_name() const;
-
-    // Функция для отображения карты
+    // Остальные методы:
     void print_card() const;
-
-    // Функция освобождения карты
     void release_card(bool used_cards[NUM_RANKS][NUM_SUITS]);
-
-    // Инициализация карты
     void init_card(Suit suit, Rank rank, bool used_cards[NUM_RANKS][NUM_SUITS]);
-
-    // Инициализация случайной карты
     void init_random_card(bool used_cards[NUM_RANKS][NUM_SUITS]);
 };
 
@@ -72,6 +79,8 @@ public:
 
     // Конструктор с параметрами
     Hand(const Card& card1, const Card& card2);
+
+    Card* get_card_ptr(int index);
 
     // Установка карты
     void set_card(int index, const Card& card);
@@ -87,6 +96,7 @@ public:
     Card& get_card(int index);
 };
 
+// Класс Player – дружественный оператор + объявляем только здесь
 class Player {
 private:
     Hand hand;         // Рука игрока
@@ -94,35 +104,27 @@ private:
     int wins;          // Количество побед
     int ties;          // Количество ничьих
     int losses;        // Количество поражений
-
 public:
     Player();
-
-    // Сеттеры для статистики
-    void set_equity(double e);
+    // Сеттеры и геттеры
+    Player& set_equity(double e);
     void set_wins(int w);
     void set_ties(int t);
     void set_losses(int l);
-
-    // Геттер для доступа к руке
     Hand& get_hand();
-    const Hand& get_hand() const;  // Константный метод
-
-    // Сеттер для установки руки игрока
+    const Hand& get_hand() const;
     void set_hand(const Hand& h, bool used_cards[NUM_RANKS][NUM_SUITS]);
-
-    // Инициализация игрока
     void init_player(const Hand& new_hand, bool used_cards[NUM_RANKS][NUM_SUITS]);
-
-    // Очистка карт игрока
     void clear_player_cards(bool used_cards[NUM_RANKS][NUM_SUITS]);
-
-    // Геттеры для получения статистики игрока
     double get_equity() const;
     int get_wins() const;
     int get_ties() const;
     int get_losses() const;
+
+    // Дружественная функция для перегрузки оператора +
+    friend Player operator+(const Player& lhs, const Player& rhs);
 };
+
 
 class Board {
 private:
